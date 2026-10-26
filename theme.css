@@ -1,0 +1,1158 @@
+/*
+ * Kepler 1.0.0
+ * An always-dark interface with a light/dark note area and reading-first typography.
+ * Author:  Mateu Bennasar
+ * License: MIT
+ * Visual inspiration: Abecedarium by zalenza
+ *
+ * Contrast ratios are WCAG 2.x, checked by tools/check_contrast.py.
+ */
+
+/* ============================================================
+   TOKENS
+   ============================================================ */
+
+:root {
+	/* neutral palette */
+	--kepler-dark: #131313;
+	--kepler-dark-soft: #1E1E1E;
+	--kepler-dark-muted: #2C2C2C;
+	--kepler-light: #FFFFFF;
+	--kepler-light-soft: #F4F4F4;
+	--kepler-gray: #A8A8A8;
+	--kepler-txt-muted: #888888;
+
+	/* Accent roles, default teal. These are the fallback for WebViews without relative
+	   colour syntax (iOS < 18, Android WebView < 119), which would otherwise drop every
+	   oklch(from …) value below and lose the accent colours. The @supports block that
+	   follows declares exactly the same variables. */
+	--kepler-accent: #13968A;
+	--kepler-primary: #13968A;
+	--kepler-primary-dark: #155B55;
+	--kepler-primary-light: #2BD1C3;
+	--kepler-primary-glow: rgba(43, 209, 195, 0.15);
+	--kepler-primary-tint: rgba(19, 150, 138, 0.1);
+	--kepler-selection-dark: rgba(21, 91, 85, 0.5);
+	--kepler-selection-light: rgba(43, 209, 195, 0.3);
+	--kepler-thumb-dark: rgba(43, 209, 195, 0.8);
+	--kepler-thumb-light: rgba(19, 150, 138, 0.8);
+	--kepler-h4-line-dark: rgba(43, 209, 195, 0.4);
+	--kepler-h4-line-light: rgba(19, 150, 138, 0.45);
+	--kepler-callout-dark: #36F0D2;
+	--kepler-callout-light: #006E63;
+	--kepler-keyword-light: #00796D;
+	--kepler-code-bg-dark: #161D1C;
+	--kepler-code-bg-light: #F1F6F5;
+	--kepler-weekend-tint: rgba(19, 150, 138, 0.09);  /* Calendar weekends: below the explorer's selected (15%) and active (30%) tints */
+	--kepler-tree-folder-tint: rgba(19, 150, 138, 0.08);  /* file explorer: the folder that holds the active file */
+
+	/* corners: chrome is flat, content blocks are softened */
+	--kepler-radius-ui: 0;
+	--kepler-radius-content: 4px;
+
+	/* H1 marks and fold icon sit on the accent block in both modes */
+	--kepler-h1-mark: rgba(255, 255, 255, 0.6);
+
+	--kepler-graph-highlight: #EC5151;
+	--kepler-graph-unresolved: #FFCF00;
+}
+
+/* Accent roles that follow Settings → Appearance → Accent color. The picker writes
+   --accent-h/s/l inline on <body>, so the roles are declared there.
+   Each role keeps a fixed OKLCH lightness, which is what holds its documented contrast,
+   and takes its hue from the accent. Its chroma is the accent's (capped at 0.13, so
+   vivid picks clip less) times the role's ratio to the default teal.
+   Code backgrounds keep today's absolute tint, which never exceeds the accent's own
+   chroma, so a grey accent gives grey code blocks. */
+@supports (color: oklch(from red l c h)) {
+	body {
+		--kepler-accent: hsl(var(--accent-h), var(--accent-s), var(--accent-l));
+		--kepler-primary: oklch(from var(--kepler-accent) 0.612 calc(min(c, 0.13) * 0.996) h);
+		--kepler-primary-dark: oklch(from var(--kepler-accent) 0.4279 calc(min(c, 0.13) * 0.6461) h);
+		--kepler-primary-light: oklch(from var(--kepler-accent) 0.7781 calc(min(c, 0.13) * 1.239) h);
+		--kepler-primary-glow: oklch(from var(--kepler-primary-light) l c h / 0.15);
+		--kepler-primary-tint: oklch(from var(--kepler-primary) l c h / 0.1);
+		--kepler-selection-dark: oklch(from var(--kepler-primary-dark) l c h / 0.5);
+		--kepler-selection-light: oklch(from var(--kepler-primary-light) l c h / 0.3);
+		--kepler-thumb-dark: oklch(from var(--kepler-primary-light) l c h / 0.8);
+		--kepler-thumb-light: oklch(from var(--kepler-primary) l c h / 0.8);
+		--kepler-h4-line-dark: oklch(from var(--kepler-primary-light) l c h / 0.4);
+		--kepler-h4-line-light: oklch(from var(--kepler-primary) l c h / 0.45);
+		--kepler-callout-dark: oklch(from var(--kepler-accent) 0.8597 calc(min(c, 0.13) * 1.4194) h);
+		--kepler-callout-light: oklch(from var(--kepler-accent) 0.48 calc(min(c, 0.13) * 0.8678) h);
+		--kepler-keyword-light: oklch(from var(--kepler-accent) 0.5172 calc(min(c, 0.13) * 0.8847) h);
+		--kepler-code-bg-dark: oklch(from var(--kepler-accent) 0.2233 min(c, 0.0105) h);
+		--kepler-code-bg-light: oklch(from var(--kepler-accent) 0.9691 min(c, 0.0055) h);
+		--kepler-weekend-tint: oklch(from var(--kepler-primary) l c h / 0.09);
+		--kepler-tree-folder-tint: oklch(from var(--kepler-primary) l c h / 0.08);
+	}
+}
+
+/* ============================================================
+   UI LAYER
+   Mode-independent settings, then the colours of the app chrome,
+   which stays dark in both modes.
+   ============================================================ */
+
+body {
+	--font-text-theme: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+	--font-interface-theme: var(--font-text-theme);
+	--font-monospace-theme: 'Source Code Pro', monospace;
+
+	/* default accent, teal #13968A; a custom accent from Settings → Appearance is set inline and wins */
+	--accent-h: 174;
+	--accent-s: 78%;
+	--accent-l: 33%;
+
+	/* reading comfort */
+	--line-height-normal: 1.65;          /* default 1.5; more air for long reading */
+	--file-line-width: 720px;            /* ~70 characters; needs Readable line length */
+	--file-margins: 30px 10px 30px 30px; /* same padding in source and reading views */
+	--p-spacing: 0.75em;
+	--heading-spacing: var(--p-spacing);
+
+	/* lists and tasks */
+	--checkbox-radius: 50%;
+	--checkbox-border-color-hover: var(--text-faint);
+	--checklist-done-color: var(--text-faint);
+	--list-marker-color: var(--text-accent);
+
+	/* headings: colours come from the --kepler-h* tokens of each mode */
+	--h1-color: var(--kepler-h1-color);
+	--h2-color: var(--kepler-h2-color);
+	--h3-color: var(--kepler-h3-color);
+	--h4-color: var(--kepler-h4-color);
+	--h5-color: var(--kepler-h5-color);
+	--h6-color: var(--kepler-h6-color);
+	--h5-letter-spacing: 0.12em;
+	--h6-style: italic;
+
+	/* links: currentColor is resolved on each link, so one value fits every link colour */
+	--link-unresolved-opacity: 0.5;
+	--link-unresolved-decoration-color: color-mix(in srgb, currentColor 35%, transparent);
+
+	--callout-radius: var(--kepler-radius-content);
+	--code-radius: var(--kepler-radius-content);
+
+	/* neutral bar: accent bars already mean H3, code blocks and blockquotes */
+	--embed-border-start: 2px solid var(--background-modifier-border-hover);
+	--table-row-alt-background: var(--background-secondary);
+
+	/* chrome */
+	--header-height: 36px;
+	--scrollbar-width: 8px;
+	--status-bar-border-width: 0;
+	--vault-profile-font-size: 20px;
+
+	/* tree rows (file explorer, bookmarks, outline, tags, search): hover is neutral grey, the active
+	   file an accent tint with accent text and an inset bar, a multi-selection a lighter accent tint */
+	--nav-item-size: 13px;
+	--nav-item-background-hover: var(--color-base-25);
+	--nav-item-background-active: color-mix(in srgb, var(--kepler-primary) 30%, transparent);
+	--nav-item-background-selected: color-mix(in srgb, var(--kepler-primary) 15%, transparent);
+	--nav-item-color-active: var(--text-accent);
+	--kepler-nav-active-bar: inset 2px 0 0 var(--kepler-primary);
+
+	/* file explorer icons: Lucide folder, folder-open and file (Obsidian's icon set), drawn as masks.
+	   Set --kepler-tree-icons to none to turn them off. */
+	--kepler-tree-icons: block;
+	--kepler-tree-icon-size: 14px;
+	--kepler-tree-icon-gap: 6px;
+	--kepler-tree-icon-color: var(--kepler-primary);      /* the UI icon accent: 5.2:1 on the sidebar, 4.8:1 on the folder block, ≥ 4.2 with any accent */
+	--kepler-tree-icon-color-active: var(--text-accent);  /* the folder that holds the active file: the light accent, 1.9× brighter */
+	--kepler-icon-folder: url("data:image/svg+xml,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 viewBox=%270 0 24 24%27 fill=%27none%27 stroke=%27black%27 stroke-width=%272%27 stroke-linecap=%27round%27 stroke-linejoin=%27round%27%3E%3Cpath d=%27M20 20a2 2 0 0 0 2-2V8a2 2 0 0 0-2-2h-7.9a2 2 0 0 1-1.69-.9L9.6 3.9A2 2 0 0 0 7.93 3H4a2 2 0 0 0-2 2v13a2 2 0 0 0 2 2Z%27/%3E%3C/svg%3E");
+	--kepler-icon-folder-open: url("data:image/svg+xml,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 viewBox=%270 0 24 24%27 fill=%27none%27 stroke=%27black%27 stroke-width=%272%27 stroke-linecap=%27round%27 stroke-linejoin=%27round%27%3E%3Cpath d=%27m6 14 1.5-2.9A2 2 0 0 1 9.24 10H20a2 2 0 0 1 1.94 2.5l-1.54 6a2 2 0 0 1-1.95 1.5H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h3.9a2 2 0 0 1 1.69.9l.81 1.2a2 2 0 0 0 1.67.9H18a2 2 0 0 1 2 2v2%27/%3E%3C/svg%3E");
+	--kepler-icon-file: url("data:image/svg+xml,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 viewBox=%270 0 24 24%27 fill=%27none%27 stroke=%27black%27 stroke-width=%272%27 stroke-linecap=%27round%27 stroke-linejoin=%27round%27%3E%3Cpath d=%27M6 22a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h8a2.4 2.4 0 0 1 1.704.706l3.588 3.588A2.4 2.4 0 0 1 20 8v12a2 2 0 0 1-2 2z%27/%3E%3Cpath d=%27M14 2v5a1 1 0 0 0 1 1h5%27/%3E%3C/svg%3E");
+
+	/* compact rows on desktop: 22px tall at the 13px nav size (was 24.9px). Mobile and tablet
+	   keep Obsidian's touch padding, which outranks this from .is-mobile and .is-tablet. */
+	--kepler-nav-padding-block: calc((22px - var(--line-height-tight) * 1em) / 2);
+	--nav-item-padding: var(--kepler-nav-padding-block) var(--size-4-2) var(--kepler-nav-padding-block) var(--size-4-6);
+	--nav-item-parent-padding: var(--nav-item-padding);
+
+	--graph-node: var(--kepler-primary);
+	--graph-line: var(--kepler-primary-dark);
+	--graph-text: var(--kepler-primary);
+	--graph-node-tag: var(--kepler-primary-light);
+	--graph-node-unresolved: var(--kepler-graph-unresolved);
+}
+
+/* right-to-left: Obsidian mirrors the row padding on .mod-rtl, which outranks body */
+body.mod-rtl:not(.is-mobile) {
+	--nav-item-padding: var(--kepler-nav-padding-block) var(--size-4-6) var(--kepler-nav-padding-block) var(--size-4-2);
+	--kepler-nav-active-bar: inset -2px 0 0 var(--kepler-primary);
+}
+
+/* Mobile selectors are listed so they outrank Obsidian's .is-mobile.theme-dark. */
+body.theme-dark,
+body.theme-light,
+body.is-mobile.theme-dark,
+body.is-mobile.theme-light {
+	color-scheme: dark;
+	--highlight-mix-blend-mode: lighten;
+	--mono-0: black;
+	--mono-100: white;
+	--mono-rgb-100: 255, 255, 255;
+
+	--color-base-00: var(--kepler-dark);
+	--color-base-05: var(--kepler-dark);
+	--color-base-10: var(--kepler-dark-soft);
+	--color-base-20: var(--kepler-dark-soft);
+	--color-base-25: var(--kepler-dark-muted);
+	--color-base-30: var(--kepler-dark-muted);
+	--color-base-35: var(--kepler-dark-muted);
+	--color-base-40: var(--kepler-txt-muted);
+	--color-base-50: var(--kepler-txt-muted);
+	--color-base-60: var(--kepler-gray);
+	--color-base-70: var(--kepler-gray);
+	--color-base-100: var(--kepler-light);
+	--color-accent-hsl: var(--accent-h), var(--accent-s), var(--accent-l);
+	--color-accent-1: hsl(calc(var(--accent-h) - 3), calc(var(--accent-s) * 1.02), calc(var(--accent-l) * 1.15));
+	--color-accent-2: hsl(calc(var(--accent-h) - 5), calc(var(--accent-s) * 1.05), calc(var(--accent-l) * 1.29));
+
+	--color-red: #fb464c;
+	--color-orange: #de9d07;
+	--color-yellow: #e0de71;
+	--color-green: #4a8069;
+	--color-cyan: #53dfdd;
+	--color-blue: #027aff;
+	--color-purple: #b352e0;
+	--color-pink: #fa99cd;
+	--color-red-rgb: 251, 70, 76;
+	--color-orange-rgb: 233, 151, 63;
+	--color-yellow-rgb: 224, 222, 113;
+	--color-green-rgb: 68, 207, 110;
+	--color-cyan-rgb: 83, 223, 221;
+	--color-blue-rgb: 2, 122, 255;
+	--color-purple-rgb: 168, 130, 255;
+	--color-pink-rgb: 250, 153, 205;
+	--canvas-color: #7e7e7e;
+
+	--blur-background: color-mix(in srgb, var(--interactive-normal) var(--blur-opacity-s), transparent) linear-gradient(var(--interactive-normal), color-mix(in srgb, var(--interactive-normal) var(--blur-opacity-s), transparent));
+	--raised-mask-background: transparent;
+	--input-shadow: inset 0 0.5px 0.5px 0.5px rgba(255, 255, 255, 0.09), 0 2px 4px 0 rgba(0, 0, 0, 0.15), 0 1px 1.5px 0 rgba(0, 0, 0, 0.1), 0 1px 2px 0 rgba(0, 0, 0, 0.2), 0 0 0 0 transparent;
+	--input-shadow-hover: inset 0 0.5px 1px 0.5px rgba(255, 255, 255, 0.16), 0 2px 3px 0 rgba(0, 0, 0, 0.3), 0 1px 1.5px 0 rgba(0, 0, 0, 0.2), 0 1px 2px 0 rgba(0, 0, 0, 0.4), 0 0 0 0 transparent;
+	--shadow-xs: 0 1px 6px rgba(0, 0, 0, 0.045), 0 4px 24px rgba(0, 0, 0, 0.195), var(--shadow-edges);
+	--shadow-s: 0px 1px 2px rgba(0, 0, 0, 0.121), 0px 3.4px 6.7px rgba(0, 0, 0, 0.179), 0px 15px 30px rgba(0, 0, 0, 0.3);
+	--shadow-l: 0px 1.8px 7.3px rgba(0, 0, 0, 0.071), 0px 6.3px 24.7px rgba(0, 0, 0, 0.112), 0px 30px 90px rgba(0, 0, 0, 0.2);
+	--pdf-shadow: 0 0 0 1px var(--background-modifier-border);
+	--pdf-thumbnail-shadow: 0 0 0 1px var(--background-modifier-border);
+
+	--background-primary: var(--kepler-dark);
+	--background-primary-alt: var(--kepler-dark-soft);
+	--background-secondary: var(--kepler-dark);
+	--background-secondary-alt: var(--kepler-dark);
+	--background-modifier-border: var(--kepler-dark-muted);
+	--background-modifier-form-field: var(--kepler-dark-soft);
+	--background-modifier-hover: var(--kepler-primary-glow);
+	--background-modifier-box-shadow: rgba(0, 0, 0, 0.3);
+	--background-modifier-cover: rgba(10, 10, 10, 0.4);
+	--background-modifier-success: #197300;
+
+	--text-normal: var(--kepler-light);
+	--text-muted: var(--kepler-gray);              /* 7.8:1 on #131313 */
+	--text-faint: var(--kepler-txt-muted);         /* 5.2:1 on #131313 */
+	--text-accent: var(--kepler-primary-light);    /* 9.7:1 on #131313, ≥ 8.0 with any accent */
+	--text-accent-hover: var(--kepler-primary);
+	--text-error: #ff3333;
+	--text-on-accent: var(--kepler-dark);          /* dark text on the accent, 5.2:1, ≥ 4.5 with any accent */
+	--text-selection: var(--kepler-selection-dark);
+	--text-highlight-bg: var(--kepler-primary-dark);
+	--kepler-highlight-fg: var(--kepler-light);           /* 7.9:1, ≥ 7.7 with any accent */
+	--kepler-highlight-strong-bg: var(--kepler-primary);
+	--kepler-highlight-strong-fg: var(--kepler-dark);     /* 5.2:1, ≥ 4.5 */
+	--kepler-text-colored: var(--kepler-primary-light);   /* 9.7:1, ≥ 8.0 */
+
+	--interactive-normal: var(--kepler-dark-soft);
+	--interactive-hover: var(--kepler-dark-muted);
+	--interactive-accent: var(--kepler-primary);
+	--interactive-accent-hover: var(--kepler-primary-light);
+	--icon-color: var(--kepler-primary);
+	--icon-color-hover: var(--kepler-primary-light);
+	--icon-color-active: var(--kepler-primary-light);
+	--icon-color-focused: var(--kepler-primary-light);
+	--scrollbar-bg: rgba(255, 255, 255, 0);
+	--scrollbar-thumb-bg: var(--kepler-dark-muted);
+	--scrollbar-active-thumb-bg: var(--kepler-thumb-dark);
+	--blockquote-background-color: var(--background-secondary);
+
+	/* headings, dark */
+	--kepler-h1-background: var(--kepler-primary);
+	--kepler-h1-color: var(--kepler-light);          /* 3.6:1, ≥ 3.4 with any accent; large text only */
+	--kepler-h2-color: var(--text-normal);
+	--kepler-h2-line: var(--kepler-primary-light);
+	--kepler-h3-color: var(--kepler-gray);           /* 7.8:1 */
+	--kepler-h3-bar: var(--kepler-primary);
+	--kepler-h4-color: var(--kepler-primary-light);  /* 9.7:1, ≥ 8.0 */
+	--kepler-h4-line: var(--kepler-h4-line-dark);
+	--kepler-h5-color: var(--kepler-gray);           /* 7.8:1 */
+	--kepler-h6-color: var(--kepler-txt-muted);      /* 5.2:1 */
+	--kepler-h6-line: var(--kepler-dark-muted);
+
+	/* callouts: cyan and green types use the accent; blue types keep --color-blue */
+	--kepler-callout-accent: var(--kepler-callout-dark);  /* brighter than the light accent, 10.6:1 on its callout background, ≥ 7.7 */
+	--callout-summary: var(--kepler-callout-accent);
+	--callout-tip: var(--kepler-callout-accent);
+	--callout-important: var(--kepler-callout-accent);
+	--callout-success: var(--kepler-callout-accent);
+
+	/* flat chrome; declared here to outrank Obsidian's platform overrides (.mod-macos, .is-mobile) */
+	--tab-radius: var(--kepler-radius-ui);
+	--tab-radius-active: var(--kepler-radius-ui);
+	--nav-item-radius: var(--kepler-radius-ui);
+	--menu-radius: var(--kepler-radius-ui);
+	--scrollbar-radius: var(--kepler-radius-ui);
+	--status-bar-radius: var(--kepler-radius-ui);
+	--vault-profile-radius: var(--kepler-radius-ui);
+}
+
+/* ============================================================
+   NOTE AREA, DARK
+   The note area is the only part that follows light/dark mode:
+   editor, reading view, hover previews, and the content of canvas,
+   Bases and Kanban views (not their view header, which is chrome),
+   plus the card or lane Kanban draws outside the view while dragging.
+   The three note-area blocks list the same selectors, without :is(),
+   so each keeps its own specificity; tools/check_contrast.py checks it.
+   ============================================================ */
+
+.theme-dark .markdown-source-view,
+.theme-dark .markdown-reading-view,
+.theme-dark .popover.hover-popover,
+.theme-dark .workspace-leaf-content[data-type="canvas"] > .view-content,
+.theme-dark .workspace-leaf-content[data-type="bases"] > .view-content,
+.theme-dark .workspace-leaf-content[data-type="kanban"] > .view-content,
+.theme-dark .kanban-plugin__drag-container,
+.theme-dark .drag-reorder-ghost:has(> .bases-kanban-card),
+.theme-dark .drag-reorder-ghost:has(> .bases-kanban-column) {
+	--background-secondary: var(--kepler-dark-soft);  /* code blocks, blockquotes, table rows */
+	--canvas-dot-pattern: #454545;  /* neutral grid, 1.9:1 on the canvas (decorative); the 1.4px dots render near 1.7 at 1x */
+	/* boards (Bases kanban, Kanban plugin): raised cards are lighter than the columns; columns band A/B.
+	   Decorative steps: card vs column ≥ 1.16, column A vs B 1.04 */
+	--kepler-board-column-a: #1A1A1A;
+	--kepler-board-column-b: #1E1E1E;
+	--kepler-board-card: #2A2A2A;  /* body text 11.3:1, muted 6.0:1 */
+	--kepler-board-card-faint: #939393;  /* #888 is 4.0:1 on the raised card; this is 4.7:1 */
+	--kepler-board-card-border: #383838;  /* the default border (#2C2C2C) vanishes on the card */
+	--kepler-board-card-border-hover: #4D4D4D;
+	--text-normal: #E4E4E4;  /* off-white avoids halation on near-black; 14.6:1 on #131313 */
+	--bold-color: var(--kepler-light);  /* key terms stand out from body text */
+	--blockquote-background-color: var(--background-secondary);
+
+	/* code syntax palette: accent = structure, fixed warm and cool hues = content */
+	--code-background: var(--kepler-code-bg-dark);  /* grey with an accent tint below ΔE 0.011; ratios below shift by ≤ 0.04 */
+	--code-normal: #D8DEDD;       /* 12.6:1 on code background */
+	--code-comment: #7E8F8C;      /* 5.0:1 */
+	--code-keyword: var(--kepler-primary-light);  /* 9.0:1, ≥ 7.4 with any accent */
+	--code-tag: var(--kepler-primary-light);
+	--code-function: #E6C07B;     /* 9.9:1 */
+	--code-string: #F29B7E;       /* 8.0:1 */
+	--code-value: #C9A2F0;        /* 8.1:1 */
+	--code-property: #82C4E6;     /* 9.0:1 */
+	--code-operator: #A8B5B3;     /* 8.1:1 */
+	--code-punctuation: #8A9997;  /* 5.8:1 */
+	--code-important: #FF6B6B;    /* 6.2:1 */
+}
+
+/* ============================================================
+   NOTE AREA, LIGHT
+   ============================================================ */
+
+.theme-light .markdown-source-view,
+.theme-light .markdown-reading-view,
+.theme-light .popover.hover-popover,
+.theme-light .workspace-leaf-content[data-type="canvas"] > .view-content,
+.theme-light .workspace-leaf-content[data-type="bases"] > .view-content,
+.theme-light .workspace-leaf-content[data-type="kanban"] > .view-content,
+.theme-light .kanban-plugin__drag-container,
+.theme-light .drag-reorder-ghost:has(> .bases-kanban-card),
+.theme-light .drag-reorder-ghost:has(> .bases-kanban-column) {
+	color-scheme: light;
+	background-color: var(--background-primary);
+	color: var(--text-normal);
+	--highlight-mix-blend-mode: darken;
+	--mono-100: black;
+	--mono-rgb-100: 0, 0, 0;
+
+	--color-base-00: var(--kepler-light);
+	--color-base-05: var(--kepler-light);
+	--color-base-10: var(--kepler-light-soft);
+	--color-base-20: var(--kepler-light-soft);
+	--color-base-25: var(--kepler-light-soft);
+	--color-base-30: rgba(19, 19, 19, 0.12);
+	--color-base-35: rgba(19, 19, 19, 0.2);
+	--color-base-40: rgba(19, 19, 19, 0.35);
+	--color-base-60: rgba(19, 19, 19, 0.6);
+	--color-base-70: rgba(19, 19, 19, 0.72);
+	--color-base-100: var(--kepler-dark);
+	--color-accent-1: hsl(calc(var(--accent-h) - 1), calc(var(--accent-s) * 1.01), calc(var(--accent-l) * 1.075));
+	--color-accent-2: hsl(calc(var(--accent-h) - 3), calc(var(--accent-s) * 1.02), calc(var(--accent-l) * 1.15));
+
+	--color-red: #e93147;
+	--color-orange: #EFB220;
+	--color-yellow: #e0ac00;
+	--color-green: #44A850;
+	--color-cyan: #00bfbc;
+	--color-blue: #086ddd;
+	--color-purple: #7852ee;
+	--color-pink: #d53984;
+	--color-red-rgb: 233, 49, 71;
+	--color-orange-rgb: 236, 117, 0;
+	--color-yellow-rgb: 224, 172, 0;
+	--color-green-rgb: 8, 185, 78;
+	--color-cyan-rgb: 0, 191, 188;
+	--color-blue-rgb: 8, 109, 221;
+	--color-purple-rgb: 120, 82, 238;
+	--color-pink-rgb: 213, 57, 132;
+
+	--input-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.12), 0 1px 2px 0 rgba(0, 0, 0, 0.065), 0 0 0 0 transparent;
+	--input-shadow-hover: inset 0 0 0 1px rgba(0, 0, 0, 0.17), 0 1px 2px 0 rgba(0, 0, 0, 0.1), 0 0 0 0 transparent;
+	--shadow-xs: 0 1px 6px rgba(0, 0, 0, 0.015), 0 4px 24px rgba(0, 0, 0, 0.065), var(--shadow-edges);
+	--shadow-s: 0px 1px 2px rgba(0, 0, 0, 0.028), 0px 3.4px 6.7px rgba(0, 0, 0, 0.042), 0px 15px 30px rgba(0, 0, 0, 0.07);
+	--shadow-l: 0px 1.8px 7.3px rgba(0, 0, 0, 0.071), 0px 6.3px 24.7px rgba(0, 0, 0, 0.112), 0px 15px 30px rgba(0, 0, 0, 0.1);
+
+	--background-primary: var(--kepler-light);
+	--background-primary-alt: var(--kepler-light-soft);
+	--background-secondary: var(--kepler-light-soft);
+	--canvas-dot-pattern: #B8B8B8;  /* neutral grid, 2.0:1 on the canvas (decorative); the 1.4px dots render near 1.7 at 1x */
+	/* boards: white cards on grey columns. Decorative steps: card vs column ≥ 1.14, column A vs B 1.05 */
+	--kepler-board-column-a: #F0F0F0;
+	--kepler-board-column-b: #EBEBEB;
+	--kepler-board-card: var(--kepler-light);
+	--kepler-board-card-faint: var(--text-faint);
+	--kepler-board-card-border: var(--background-modifier-border);
+	--kepler-board-card-border-hover: var(--background-modifier-border-hover);
+	--background-secondary-alt: var(--kepler-light-soft);
+	--background-modifier-border: rgba(19, 19, 19, 0.12);
+	--background-modifier-form-field: var(--kepler-light);
+	--background-modifier-hover: var(--kepler-primary-tint);
+	--background-modifier-box-shadow: rgba(0, 0, 0, 0.1);
+	--background-modifier-success: #A4E7C3;
+	--background-modifier-error: #e68787;
+	--background-modifier-error-rgb: 230, 135, 135;
+	--background-modifier-error-hover: #FF9494;
+
+	--text-normal: var(--kepler-dark);             /* 18.6:1 on white */
+	--text-muted: rgba(19, 19, 19, 0.72);          /* 7.5:1 */
+	--text-faint: #6E6E6E;  /* 5.1:1 on white, 4.6:1 on #F4F4F4, code background and canvas card colours; #888 was 3.2–3.5:1 */
+	--text-accent: var(--kepler-primary-dark);     /* links: the base accent fails 4.5:1 on white; 7.9:1, ≥ 7.7 */
+	--text-accent-hover: var(--kepler-primary);
+	--text-error: #ce2222;
+	--text-selection: var(--kepler-selection-light);
+	--text-highlight-bg: var(--kepler-primary-light);
+	--kepler-highlight-fg: var(--kepler-dark);            /* 9.7:1, ≥ 8.0 */
+	--kepler-highlight-strong-bg: var(--kepler-primary-dark);
+	--kepler-highlight-strong-fg: var(--kepler-light);    /* 7.9:1, ≥ 7.7 */
+	--kepler-text-colored: var(--kepler-primary-dark);    /* 7.9:1, ≥ 7.7 */
+
+	--interactive-normal: var(--kepler-light);
+	--interactive-hover: var(--kepler-light-soft);
+	--interactive-accent-hover: var(--kepler-primary-dark);
+	--icon-color-hover: var(--kepler-primary-dark);
+	--icon-color-active: var(--kepler-primary-dark);
+	--icon-color-focused: var(--kepler-primary-dark);
+	--scrollbar-bg: rgba(100, 100, 100, 0);
+	--scrollbar-thumb-bg: rgba(19, 19, 19, 0.15);
+	--scrollbar-active-thumb-bg: var(--kepler-thumb-light);
+	--blockquote-background-color: var(--background-primary-alt);
+
+	/* headings, light (H1 block, H1 text and H3 bar are shared with dark) */
+	--kepler-h2-line: var(--kepler-primary);
+	--kepler-h3-color: rgba(19, 19, 19, 0.72);  /* 7.5:1 */
+	--kepler-h4-color: var(--kepler-primary-dark);  /* 7.9:1, ≥ 7.7 */
+	--kepler-h4-line: var(--kepler-h4-line-light);
+	--kepler-h5-color: rgba(19, 19, 19, 0.72);  /* 7.5:1 */
+	--kepler-h6-color: rgba(19, 19, 19, 0.6);   /* 4.9:1 */
+	--kepler-h6-line: rgba(19, 19, 19, 0.2);
+
+	--kepler-callout-accent: var(--kepler-callout-light);  /* darker, more saturated accent, 5.3:1 on its callout background, ≥ 5.1; ≥ 4.6 in a coloured canvas card */
+
+	/* code syntax palette: accent = structure, fixed warm and cool hues = content */
+	--code-background: var(--kepler-code-bg-light);  /* grey with an accent tint below ΔE 0.006; ratios below shift by ≤ 0.1 */
+	--code-normal: #1F2A28;       /* 13.5:1 on code background */
+	--code-comment: #5F6B69;      /* 5.1:1 */
+	--code-keyword: var(--kepler-keyword-light);  /* 4.9:1, ≥ 4.6 with any accent */
+	--code-tag: var(--kepler-keyword-light);
+	--code-function: #A55D00;     /* 4.6:1; amber sits near the minimum on light backgrounds, so functions also gain weight */
+	--code-string: #CC3000;       /* 4.8:1 */
+	--code-value: #9822FF;        /* 4.8:1 */
+	--code-property: #006CCB;     /* 4.8:1 */
+	--code-operator: #4F5B59;     /* 6.5:1 */
+	--code-punctuation: #66726F;  /* 4.6:1 */
+	--code-important: #DA0016;    /* 4.8:1 */
+}
+
+/* ============================================================
+   NOTE AREA, BOTH MODES
+   Obsidian resolves derived variables on <body>, against the dark UI values.
+   Redeclaring them here makes them resolve against the note-area values.
+   Only variables that something inside a note reads, and whose inputs
+   change between UI and note, are listed.
+   ============================================================ */
+
+.markdown-source-view,
+.markdown-reading-view,
+.popover.hover-popover,
+.workspace-leaf-content[data-type="canvas"] > .view-content,
+.workspace-leaf-content[data-type="bases"] > .view-content,
+.workspace-leaf-content[data-type="kanban"] > .view-content,
+.kanban-plugin__drag-container,
+.drag-reorder-ghost:has(> .bases-kanban-card),
+.drag-reorder-ghost:has(> .bases-kanban-column) {
+	/* theme formulas */
+	--list-marker-color: var(--text-accent);
+	--checklist-done-color: var(--text-faint);
+	--checkbox-border-color-hover: var(--text-faint);
+	--kepler-h2-color: var(--text-normal);
+	--h1-color: var(--kepler-h1-color);
+	--h2-color: var(--kepler-h2-color);
+	--h3-color: var(--kepler-h3-color);
+	--h4-color: var(--kepler-h4-color);
+	--h5-color: var(--kepler-h5-color);
+	--h6-color: var(--kepler-h6-color);
+	--inline-title-color: var(--text-normal);  /* Obsidian derives it from --h1-color, which is white */
+	--p-spacing-empty: var(--p-spacing);  /* first written line after a heading in live preview */
+	--callout-summary: var(--kepler-callout-accent);
+	--callout-tip: var(--kepler-callout-accent);
+	--callout-important: var(--kepler-callout-accent);
+	--callout-success: var(--kepler-callout-accent);
+	--embed-border-start: 2px solid var(--background-modifier-border-hover);
+	--table-row-alt-background: var(--background-secondary);
+	--pdf-shadow: 0 0 0 1px var(--background-modifier-border);
+	--pdf-thumbnail-shadow: 0 0 0 1px var(--background-modifier-border);
+	--nav-item-background-hover: var(--color-base-25);  /* embedded backlinks and query results */
+	--nav-item-color-active: var(--text-accent);
+
+	/* Obsidian formulas */
+	--background-modifier-border-hover: var(--color-base-35);
+	--background-modifier-border-focus: var(--color-base-40);
+	--background-modifier-form-field-hover: var(--background-modifier-form-field);
+	--background-modifier-warning: var(--color-orange);
+	--background-modifier-warning-hover: var(--color-orange);
+	--text-success: var(--color-green);
+	--text-warning: var(--color-orange);
+	--caret-color: var(--text-normal);
+	--checkbox-border-color: var(--text-faint);
+	--checkbox-color-hover: var(--interactive-accent-hover);
+	--checkbox-marker-color: var(--background-primary);
+	--code-border-color: var(--background-modifier-border);
+	--code-bracket-background: var(--background-modifier-hover);
+	--collapse-icon-color: var(--text-faint);
+	--collapse-icon-color-collapsed: var(--text-accent);
+	--dropdown-background: var(--interactive-normal);
+	--dropdown-background-hover: var(--interactive-hover);
+	--embed-action-color: var(--text-normal);
+	--embed-actions-background: color-mix(in srgb, var(--background-primary) 80%, transparent);
+	--embed-block-shadow-hover: 0 0 0 1px var(--background-modifier-border), inset 0 0 0 1px var(--background-modifier-border);
+	--flair-background: var(--interactive-normal);
+	--flair-color: var(--text-normal);
+	--footnote-divider-color: var(--metadata-divider-color);
+	--footnote-id-color: var(--text-muted);
+	--footnote-id-color-no-occurrences: var(--text-faint);
+	--heading-formatting: var(--text-faint);
+	--footnote-input-background-active: var(--metadata-input-background-active);
+	--highlight-background: var(--text-highlight-bg, var(--highlight-background-yellow));
+	--highlight-background-red: color-mix(in oklch, var(--color-red) var(--highlight-opacity), transparent);
+	--highlight-background-orange: color-mix(in oklch, var(--color-orange) var(--highlight-opacity), transparent);
+	--highlight-background-yellow: color-mix(in oklch, var(--color-yellow) var(--highlight-opacity), transparent);
+	--highlight-background-green: color-mix(in oklch, var(--color-green) var(--highlight-opacity), transparent);
+	--highlight-background-blue: color-mix(in oklch, var(--color-blue) var(--highlight-opacity), transparent);
+	--highlight-background-purple: color-mix(in oklch, var(--color-purple) var(--highlight-opacity), transparent);
+	--hr-color: var(--background-modifier-border);
+	--indentation-guide-color: color-mix(in oklch, var(--mono-100) 12%, transparent);
+	--indentation-guide-color-active: color-mix(in oklch, var(--mono-100) 30%, transparent);
+	--input-date-separator: var(--text-faint);
+	--input-placeholder-color: var(--text-faint);
+	--link-color: var(--text-accent);
+	--link-color-hover: var(--text-accent-hover);
+	--link-external-color: var(--text-accent);
+	--link-external-color-hover: var(--text-accent-hover);
+	--link-unresolved-color: var(--text-accent);
+	--list-marker-color-hover: var(--text-muted);
+	--list-marker-color-collapsed: var(--text-accent);
+	--nav-item-color: var(--text-muted);
+	--nav-item-color-hover: var(--text-normal);
+	--nav-item-color-selected: var(--text-normal);
+	--nav-item-color-highlighted: var(--text-accent);
+	--metadata-border-color: var(--background-modifier-border);
+	--metadata-divider-color: var(--background-modifier-border);
+	--metadata-input-background-active: var(--background-modifier-hover);
+	--metadata-input-text-color: var(--text-normal);
+	--metadata-label-background-active: var(--background-modifier-hover);
+	--metadata-label-text-color: var(--text-muted);
+	--metadata-label-text-color-hover: var(--text-muted);
+	--metadata-property-background-active: var(--background-modifier-hover);
+	--metadata-property-box-shadow-focus: 0 0 0 2px var(--background-modifier-border-focus);
+	--metadata-property-box-shadow-hover: 0 0 0 var(--border-width) var(--background-modifier-border-hover);
+	--pdf-background: var(--background-primary);
+	--pdf-page-background: var(--background-primary);
+	--pdf-sidebar-background: var(--background-primary);
+	--pill-border-color: var(--background-modifier-border);
+	--pill-border-color-hover: var(--background-modifier-border-hover);
+	--pill-color: var(--text-muted);
+	--pill-color-hover: var(--text-normal);
+	--pill-color-remove: var(--text-faint);
+	--pill-color-remove-hover: var(--text-accent);
+	--search-result-background: var(--background-primary);
+	--table-add-button-border-color: var(--background-modifier-border);
+	--table-border-color: var(--background-modifier-border);
+	--table-drag-handle-color: var(--text-faint);
+	--table-header-border-color: var(--table-border-color);
+	--table-header-color: var(--text-normal);
+	--table-selection-blend-mode: var(--highlight-mix-blend-mode);
+	--tag-color: var(--text-accent);
+	--tag-color-hover: var(--text-accent);
+
+	--callout-blend-mode: var(--highlight-mix-blend-mode);
+	--callout-bug: var(--color-red);
+	--callout-default: var(--color-blue);
+	--callout-error: var(--color-red);
+	--callout-example: var(--color-purple);
+	--callout-fail: var(--color-red);
+	--callout-info: var(--color-blue);
+	--callout-question: var(--color-orange);
+	--callout-todo: var(--color-blue);
+	--callout-warning: var(--color-orange);
+
+	/* canvas and Bases, embedded and as full views */
+	--canvas-background: var(--background-primary);
+	--canvas-card-label-color: var(--text-faint);
+	--canvas-color-1: var(--color-red);
+	--canvas-color-2: var(--color-orange);
+	--canvas-color-3: var(--color-yellow);
+	--canvas-color-4: var(--color-green);
+	--canvas-color-5: var(--color-cyan);
+	--canvas-color-6: var(--color-purple);
+	--bases-embed-border-color: var(--background-modifier-border);
+	--bases-filter-input-background: var(--background-modifier-form-field);
+	--bases-group-heading-property-color: var(--text-muted);
+	--bases-table-group-background: var(--background-primary-alt);
+	--bases-table-header-color: var(--text-muted);
+	--bases-table-header-background: var(--background-primary);
+	--bases-table-header-background-hover: var(--background-modifier-hover);
+	--bases-table-summary-background: var(--background-primary);
+	--bases-table-summary-background-hover: var(--background-modifier-hover);
+	--bases-table-border-color: var(--table-border-color);
+	--bases-table-cell-shadow-active: 0 0 0 2px var(--background-modifier-border-focus);
+	--bases-table-cell-background-active: var(--background-primary);
+	--bases-table-cell-background-disabled: var(--background-primary-alt);
+	--bases-cards-background: var(--background-primary);
+	--bases-cards-cover-background: var(--background-primary-alt);
+	--bases-cards-shadow: 0 0 0 1px var(--background-modifier-border);
+	--bases-cards-shadow-hover: 0 0 0 1px var(--background-modifier-border-hover);
+	--bases-kanban-column-background: var(--kepler-board-column-a);  /* columns are virtualised, so they can't band */
+	--bases-kanban-card-background: var(--kepler-board-card);
+	--bases-kanban-card-shadow: 0 0 0 1px var(--kepler-board-card-border), 0 1px 2px 0 rgba(0, 0, 0, 0.2);
+	--bases-kanban-card-shadow-hover: 0 0 0 1px var(--kepler-board-card-border-hover), 0 1.5px 3px 0 rgba(0, 0, 0, 0.2);
+	--bases-kanban-card-shadow-focus: 0 0 0 2px var(--background-modifier-border-focus);
+	--bases-kanban-cover-background: var(--background-secondary);
+
+	/* Code Styler sets its colours on <body> from JavaScript, so they follow the UI unless mapped here */
+	--code-styler-codeblock-background-colour: var(--code-background);
+	--code-styler-gutter-background-colour: var(--code-background);
+	--code-styler-gutter-text-colour: var(--text-faint);
+	--code-styler-gutter-active-text-colour: var(--text-muted);
+	--code-styler-header-background-colour: var(--code-background);
+	--code-styler-header-title-text-colour: var(--code-comment);
+	--code-styler-header-language-tag-background-colour: var(--code-background);
+	--code-styler-header-language-tag-text-colour: var(--code-comment);
+	--code-styler-header-separator-colour: var(--color-base-30);
+	--code-styler-active-codeblock-line-colour: var(--color-base-30);
+	--code-styler-active-editor-line-colour: var(--color-base-20);
+	--code-styler-default-highlight-colour: var(--text-highlight-bg);
+	--code-styler-button-colour: var(--text-muted);
+	--code-styler-button-active-colour: var(--text-normal);
+	--code-styler-inline-colour: var(--code-normal);
+	--code-styler-inline-colour-active: var(--code-normal);
+	--code-styler-inline-background-colour: var(--code-background);
+	--code-styler-inline-title-colour: var(--code-comment);
+}
+
+/* ============================================================
+   TYPOGRAPHY AND READING
+   ============================================================ */
+
+/* Live preview: headings sit tight under the previous block; the space goes below them instead (--p-spacing-empty). */
+.markdown-source-view.mod-cm6 .cm-line.HyperMD-header {
+	padding-top: 0;
+}
+
+/* ============================================================
+   HEADINGS (reading view and live preview)
+   ============================================================ */
+
+/* H1: accent block; its links and marks switch to the block's text colour */
+.markdown-rendered h1,
+.markdown-source-view.mod-cm6 .cm-line.HyperMD-header-1 {
+	--link-color: var(--kepler-h1-color);
+	--link-color-hover: var(--kepler-h1-color);
+	--link-external-color: var(--kepler-h1-color);
+	--link-external-color-hover: var(--kepler-h1-color);
+	--link-unresolved-color: var(--kepler-h1-color);
+	--collapse-icon-color: var(--kepler-h1-mark);
+	padding: 0.2em 0.5em;
+	border-radius: var(--kepler-radius-content);
+	background-color: var(--kepler-h1-background);
+}
+
+.markdown-source-view.mod-cm6 .HyperMD-header-1 .cm-formatting-header {
+	color: var(--kepler-h1-mark);
+}
+
+/* H2: accent underline */
+.markdown-rendered h2,
+.markdown-source-view.mod-cm6 .cm-line.HyperMD-header-2 {
+	padding-bottom: 0.15em;
+	border-bottom: 2px solid var(--kepler-h2-line);
+}
+
+/* H3: accent side bar */
+.markdown-rendered h3,
+.markdown-source-view.mod-cm6 .cm-line.HyperMD-header-3 {
+	padding-inline-start: 0.5em;
+	border-inline-start: 4px solid var(--kepler-h3-bar);
+}
+
+/* H4: accent text with a short, soft underline */
+.markdown-rendered h4,
+.markdown-source-view.mod-cm6 .cm-line.HyperMD-header-4 {
+	padding-bottom: 0.2em;
+	background: linear-gradient(var(--kepler-h4-line), var(--kepler-h4-line)) left bottom / 2.5em 2px no-repeat;
+}
+
+/* H5: uppercase label (tracking comes from --h5-letter-spacing) */
+.markdown-rendered h5,
+.markdown-source-view.mod-cm6 .cm-line.HyperMD-header-5 {
+	text-transform: uppercase;
+}
+
+/* H6: italic (from --h6-style) with a dashed underline */
+.markdown-rendered h6,
+.markdown-source-view.mod-cm6 .cm-line.HyperMD-header-6 {
+	padding-bottom: 0.1em;
+	border-bottom: 1px dashed var(--kepler-h6-line);
+}
+
+/* ============================================================
+   INLINE MARKS
+   ============================================================ */
+
+/* Obsidian colours highlighted text with --text-normal, which fails on the accent pair */
+.markdown-rendered mark,
+.markdown-source-view.mod-cm6 mark,
+.markdown-source-view.mod-cm6 .cm-highlight {
+	color: var(--kepler-highlight-fg);
+	background-color: var(--highlight-background);
+}
+
+.markdown-rendered :is(strong mark, mark strong),
+.markdown-source-view.mod-cm6 .cm-strong.cm-highlight {
+	color: var(--kepler-highlight-strong-fg);
+	background-color: var(--kepler-highlight-strong-bg);
+}
+
+/* Inline-styled spans follow the palette; !important is the only way to beat an inline style. */
+.markdown-rendered span[style*="color"]:not([style*="background"]),
+.markdown-source-view.mod-cm6 .cm-content span[style*="color"]:not([style*="background"]) {
+	color: var(--kepler-text-colored) !important;
+}
+
+/* a background colour becomes the highlight pair, so its text stays readable */
+.markdown-rendered span[style*="background"],
+.markdown-source-view.mod-cm6 .cm-content span[style*="background"] {
+	color: var(--kepler-highlight-fg) !important;
+	background-color: var(--text-highlight-bg) !important;
+}
+
+/* ============================================================
+   LINKS
+   A faint underline marks links without relying on colour alone.
+   ============================================================ */
+
+.markdown-rendered :is(.internal-link, .external-link),
+.markdown-source-view.mod-cm6 .cm-underline {
+	text-decoration-color: color-mix(in srgb, currentColor 35%, transparent);
+	text-underline-offset: 3px;
+}
+
+.markdown-rendered :is(.internal-link, .external-link):hover,
+.markdown-source-view.mod-cm6 .cm-underline:hover {
+	text-decoration-color: currentColor;
+}
+
+/* Obsidian only fades unresolved links in reading view */
+.markdown-source-view.mod-cm6 .is-unresolved .cm-underline {
+	opacity: var(--link-unresolved-opacity);
+}
+
+/* ============================================================
+   CALLOUTS
+   Fully variable-driven: --callout-radius in the UI layer, colours
+   in the token blocks above.
+   ============================================================ */
+
+/* ============================================================
+   CODE
+   ============================================================ */
+
+.markdown-source-view.mod-cm6 .code-block-flair {
+	display: none;
+}
+
+/* shape cues, so syntax does not depend on colour alone */
+.markdown-rendered .token.keyword,
+.markdown-source-view.mod-cm6 .cm-keyword {
+	font-weight: 600;
+}
+
+.markdown-rendered .token.comment,
+.markdown-source-view.mod-cm6 .cm-comment {
+	font-style: italic;
+}
+
+.theme-light .markdown-rendered :is(.token.function, .token.builtin, .token.class-name),
+.theme-light .markdown-source-view.mod-cm6 :is(.cm-builtin, .cm-type) {
+	font-weight: 600;
+}
+
+/* reading view: framed block with an accent edge */
+.markdown-rendered pre {
+	padding: 0.9em 1em;
+	border: 1px solid var(--code-border-color);
+	border-inline-start: 3px solid var(--interactive-accent);
+}
+
+.markdown-rendered pre code {
+	line-height: 1.5;
+}
+
+/* live preview: an inset shadow draws the edge without shifting the text */
+.markdown-source-view.mod-cm6 .cm-line.HyperMD-codeblock {
+	background-color: var(--code-background);
+	box-shadow: inset 3px 0 0 var(--interactive-accent);
+}
+
+/* inline code as a neutral chip, so it never reads as a link */
+.markdown-rendered :not(pre) > code,
+.markdown-source-view.mod-cm6 .cm-inline-code {
+	padding: 0.1em 0.3em;
+	border-radius: 3px;
+}
+
+/* ============================================================
+   TABLES, EMBEDS AND IMAGES
+   ============================================================ */
+
+/* embed link icon in the left gutter instead of the top-right corner */
+.markdown-embed-link,
+.file-embed-link {
+	--icon-size: 12px;
+	--icon-opacity: 1;
+	--icon-color: var(--text-muted);
+	--icon-color-hover: var(--text-accent);
+	top: 0;
+	inset-inline-start: 0;
+	inset-inline-end: auto;
+}
+
+/* cssclasses: img-zoom — press and hold an image to see it fullscreen */
+.img-zoom.markdown-preview-view img {
+	cursor: zoom-in;
+}
+
+.img-zoom.markdown-preview-view img:active {
+	position: fixed;
+	inset: 0;
+	z-index: 100;
+	width: 100%;
+	height: 100%;
+	max-width: none;
+	margin: 0;
+	padding: 0;
+	object-fit: contain;
+	background-color: var(--background-primary);
+	cursor: zoom-out;
+}
+
+/* ============================================================
+   CANVAS AND BASES
+   ============================================================ */
+
+/* Group labels on a colour: Obsidian picks dark or light text by YIQ and reads --text-on-accent
+   for light text, expecting white. Kepler's is dark, so custom colours get white back, and the
+   presets take black, which reads better on them: ≥ 4.5:1 in both modes; light purple keeps white, 4.9:1. */
+.canvas-node-group .canvas-group-label {
+	--text-on-accent: var(--kepler-light);
+}
+
+.canvas-node-group:is(.mod-canvas-color-1, .mod-canvas-color-2, .mod-canvas-color-3, .mod-canvas-color-4, .mod-canvas-color-5) > .canvas-group-label,
+.theme-dark .canvas-node-group.mod-canvas-color-6 > .canvas-group-label {
+	--text-on-accent: var(--text-on-accent-inverted);
+}
+
+/* Bases kanban cards are raised above their column; faint text needs its own grey there in dark mode */
+.bases-kanban-card {
+	--text-faint: var(--kepler-board-card-faint);
+}
+
+/* Bases error badge: dark text on the light red is 3.4:1; white is 5.4:1 */
+.theme-light .bases-toolbar .mod-error {
+	--flair-color: var(--kepler-light);
+}
+
+/* ============================================================
+   UI CHROME
+   ============================================================ */
+
+.workspace-tab-header,
+.workspace-tab-header-inner {
+	transition: background-color 100ms linear;
+}
+
+.workspace-tab-header-inner {
+	padding: 9px 20px;
+}
+
+.workspace-tab-header-inner-icon > .svg-icon {
+	width: 15px;
+	height: 15px;
+}
+
+.workspace-leaf-resize-handle {
+	transition: background-color 80ms linear;
+}
+
+/* the UI stays dark in light mode, so dropdowns keep Obsidian's light-on-dark arrow */
+.theme-light .dropdown {
+	background-image: url("data:image/svg+xml,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 width=%2724%27 height=%2724%27 viewBox=%270 0 24 24%27 fill=%27none%27 stroke=%27%23FFF%27 opacity=%270.6%27 stroke-width=%272%27 stroke-linecap=%27round%27 stroke-linejoin=%27round%27 %3E%3Cpath d=%27m7 15 5 5 5-5%27/%3E%3Cpath d=%27m7 9 5-5 5 5%27/%3E%3C/svg%3E"), radial-gradient(ellipse, var(--dropdown-icon-background) 48%, transparent 50%);
+}
+
+/* File explorer icons: one per row, before the name, so names at the same level line up.
+   Skipped where a row already has an icon (Iconize's .iconize-icon, or any core .tree-item-icon
+   that isn't the collapse arrow). The ::before replaces Obsidian's zero-width baseline space. */
+.nav-files-container :is(.nav-folder-title, .nav-file-title):not(:has(> .iconize-icon, > .tree-item-icon:not(.collapse-icon)))::before {
+	content: "";
+	display: var(--kepler-tree-icons);
+	flex: 0 0 auto;
+	align-self: center;
+	width: var(--kepler-tree-icon-size);
+	height: var(--kepler-tree-icon-size);
+	margin-inline-end: var(--kepler-tree-icon-gap);
+	background-color: var(--kepler-tree-icon-color);
+	-webkit-mask: var(--kepler-icon-file) center / contain no-repeat;
+	mask: var(--kepler-icon-file) center / contain no-repeat;
+}
+
+.nav-files-container .nav-folder.is-collapsed > .nav-folder-title::before {
+	-webkit-mask-image: var(--kepler-icon-folder);
+	mask-image: var(--kepler-icon-folder);
+}
+
+.nav-files-container .nav-folder:not(.is-collapsed) > .nav-folder-title::before {
+	-webkit-mask-image: var(--kepler-icon-folder-open);
+	mask-image: var(--kepler-icon-folder-open);
+}
+
+/* Icons added with Iconize draw in currentColor, so they take the same accent as Kepler's icons.
+   A colour picked in Iconize is set inline and still wins. */
+.nav-files-container .iconize-icon {
+	color: var(--kepler-tree-icon-color);
+}
+
+.nav-files-container .nav-folder:has(> .nav-folder-children > .nav-file > .nav-file-title.is-active) > .nav-folder-title > .iconize-icon {
+	color: var(--kepler-tree-icon-color-active);
+}
+
+/* The folder that directly holds the active file: a faint accent block behind its title and children,
+   reaching the same edge as the full-width rows. The container query unit sizes it, and the container's
+   stacking context keeps it behind every row, guide and hover. Collapsed folders and rows the virtual
+   list has unloaded aren't in the DOM, so the block shows only while the active row is rendered. */
+.nav-files-container {
+	container-type: inline-size;
+}
+
+.nav-files-container .nav-folder:has(> .nav-folder-children > .nav-file > .nav-file-title.is-active) {
+	position: relative;
+}
+
+.nav-files-container .nav-folder:has(> .nav-folder-children > .nav-file > .nav-file-title.is-active)::before {
+	content: "";
+	position: absolute;
+	inset-block: 0;
+	inset-inline-end: 0;
+	width: 100cqw;
+	z-index: -1;
+	background-color: var(--kepler-tree-folder-tint);
+	pointer-events: none;
+}
+
+.nav-files-container .nav-folder:has(> .nav-folder-children > .nav-file > .nav-file-title.is-active) > .nav-folder-title::before {
+	background-color: var(--kepler-tree-icon-color-active);
+}
+
+/* active tree row: an inset accent bar on the start side, so the text doesn't shift.
+   Obsidian draws keyboard focus with box-shadow too, so both are combined there. :where() keeps
+   this below Obsidian's own rings (context menu open, renaming), which replace the bar briefly. */
+.tree-item-self:where(.is-active),
+.pdf-outline-view .tree-item-self:where(.mod-active) {
+	box-shadow: var(--kepler-nav-active-bar);
+}
+
+body:not(.is-phone) .workspace-leaf.mod-active .tree-item-self.is-active.has-focus {
+	box-shadow: var(--kepler-nav-active-bar), 0 0 0 2px var(--background-modifier-border-focus);
+}
+
+body:not(.is-phone) .workspace-leaf.mod-active .tree-item-self.is-active.has-focus:focus-within {
+	box-shadow: var(--kepler-nav-active-bar), 0 0 0 2px var(--interactive-accent);
+}
+
+/* sidebar nav buttons: accent icons, the active toggle outlined rather than filled */
+.nav-buttons-container {
+	--icon-color: var(--text-accent);
+}
+
+.nav-buttons-container .nav-action-button.is-active {
+	background-color: transparent;
+	box-shadow: inset 0 0 0 1px var(--text-accent);
+}
+
+/* tag pane count badge */
+.tag-pane-tag-count {
+	padding: 2px 4px;
+	border-radius: 3px;
+	font-size: 0.9em;
+	line-height: 1.3;
+	background-color: var(--background-secondary-alt);
+}
+
+.tag-container .tree-item-self:hover .tag-pane-tag-count {
+	color: var(--text-normal);
+	background-color: var(--kepler-primary-dark);
+}
+
+/* search and backlinks */
+.search-result-file-title {
+	--nav-item-size: 14px;
+	color: var(--text-accent);
+}
+
+.search-result-file-matches {
+	border-radius: var(--kepler-radius-ui);
+	box-shadow: none;
+}
+
+/* quick switcher and command palette */
+.suggestion-item.is-selected {
+	background-color: var(--kepler-primary-dark);
+}
+
+.suggestion-item.is-selected .suggestion-hotkey {
+	color: var(--text-accent);
+}
+
+/* graph view: colours with no Obsidian variable of their own */
+.graph-view.color-circle {
+	color: var(--text-normal);
+}
+
+.graph-view:is(.color-fill-highlight, .color-line-highlight) {
+	color: var(--kepler-graph-highlight);
+}
+
+.graph-view.color-fill-unresolved {
+	opacity: 1;
+}
+
+/* ============================================================
+   PLUGIN INTEGRATIONS
+   (Code Styler is mapped in the note-area block above; the Kanban board is a note-area view.)
+   ============================================================ */
+
+/* Dataview: numbered rows and a header rule in TABLE views */
+.table-view-table {
+	counter-reset: kepler-row;
+}
+
+.table-view-table > tbody > tr > td:first-child::before {
+	counter-increment: kepler-row;
+	content: counter(kepler-row) ". ";
+}
+
+/* one class more than Dataview's own header rule */
+.markdown-rendered .table-view-table > thead > tr > th {
+	border-bottom: 1px solid var(--text-faint);
+}
+
+/* Excalidraw: active tool in the light accent with dark icons, 9.7:1 (≥ 8.0 with any accent).
+   body raises specificity over Excalidraw's own .excalidraw and .excalidraw.theme--dark,
+   whose stylesheet is injected after the theme. */
+body .excalidraw,
+body .excalidraw.theme--dark {
+	--color-surface-primary-container: var(--kepler-primary-light);
+	--color-on-primary-container: var(--kepler-dark);
+}
+
+/* Drag previews (Kanban plugin, Bases kanban) take the light note-area variables and text colour,
+   but not its background; the dragged card or column paints its own, so the rounded corners stay clean */
+.theme-light .kanban-plugin__drag-container,
+.theme-light .drag-reorder-ghost:has(> .bases-kanban-card),
+.theme-light .drag-reorder-ghost:has(> .bases-kanban-column) {
+	background-color: transparent;
+}
+
+/* Kanban: lanes band between two neutral greys, counted among lanes only, so the add-list form and
+   drop placeholders don't shift it; cards take the raised surface. The plugin has no lane or card
+   variables, so its own --background-secondary (lanes) and --background-primary (cards) are rescoped.
+   Browsers without :nth-child(… of …) show every lane as A. */
+.kanban-plugin__lane-wrapper {
+	--background-secondary: var(--kepler-board-column-a);
+}
+
+.kanban-plugin__lane-wrapper:nth-child(even of .kanban-plugin__lane-wrapper) {
+	--background-secondary: var(--kepler-board-column-b);
+}
+
+.kanban-plugin__item {
+	--background-primary: var(--kepler-board-card);
+	--background-primary-alt: var(--kepler-board-card);  /* the plugin's editing state reads this */
+	--background-modifier-border: var(--kepler-board-card-border);
+	--text-faint: var(--kepler-board-card-faint);
+}
+
+/* Kanban: add buttons hover to --interactive-accent-hover, the dark accent in a light board,
+   so their text turns light there; 7.9:1, ≥ 7.7 with any accent */
+.theme-light .kanban-plugin__new-item-button:hover,
+.theme-light button.kanban-plugin__item-action-add:hover,
+.theme-light button.kanban-plugin__lane-action-add:hover {
+	--text-on-accent: var(--kepler-light);
+}
+
+/* Calendar: the id outranks the plugin's scoped Svelte classes */
+#calendar-container {
+	--color-background-weekend: var(--kepler-weekend-tint);
+	--color-text-today: var(--text-accent);
+}
+
+/* Other-month days: the plugin dims the whole cell to 25%, which leaves white day numbers at 2.3:1.
+   At 50% they read like --text-faint: 5.1:1 on a weekend, ≥ 5.0 with any accent. */
+#calendar-container .day.adjacent-month {
+	opacity: 0.5;
+}
+
+#calendar-container .year {
+	color: var(--text-normal);
+}
+
+/* ============================================================
+   MOBILE
+   ============================================================ */
+
+body.is-mobile {
+	--kepler-tree-icon-size: 20px;  /* scales with the 20px rows of the mobile drawer */
+	--file-margins: 20px 10px 30px 20px;
+	--nav-item-size: 20px;
+}
+
+.is-mobile .search-result-file-title {
+	--nav-item-size: 20px;
+}
