@@ -17,10 +17,6 @@ Kepler fixes the lightness of each of those elements to keep its documented cont
 
 On mobile WebViews without relative colour support (older than iOS 18 or Android WebView 119), Kepler falls back to its default teal.
 
-<details>
-<summary><b>🎨 Click to expand Accent & Mode Showcase Gallery</b></summary>
-<br>
-
 ### Blue / Teal (Default Accent)
 | Note View (White) | Note View (Dark) |
 | :-: | :-: |
