@@ -86,15 +86,6 @@ body { --kepler-tree-icons: none; }
 2. Put them in `<your vault>/.obsidian/themes/Kepler/`.
 3. Reload Obsidian and pick **Kepler** in **Settings → Appearance → Themes**.
 
-## Testing
-
-Copy the `tests` folder to the root of a vault: the canvas embeds `tests/kepler-test.md` by that path.
-
-- `kepler-test.md` exercises every element the theme styles. Open it in both modes, in live preview and reading view.
-- `kepler-test.canvas` has one card per colour, a markdown card, a note embed, labelled groups and labelled edges.
-- `kepler-test.base` shows the files in its own folder as a table, a grouped table, cards and a kanban board.
-- `kepler-test-kanban.md` is a board for the Kanban plugin.
-
 ## License
 
 [MIT](LICENSE) © 2026 Mateu Bennasar Lendinez
