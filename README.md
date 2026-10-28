@@ -5,6 +5,7 @@ A theme for [Obsidian](https://obsidian.md) 1.14.5+ on desktop and mobile, built
 ## What makes Kepler different
 
 - **Dark interface, light or dark note.** Sidebars, tabs, menus and the status bar stay dark in both modes. Switching Obsidian to light mode changes only the note area. So you can read on white without the whole window flashing bright.
+- **PDF export always uses the light note palette**, whichever mode you export from.
 - **Reading-first typography.** Source and reading views use identical margins, so switching between them doesn't move the text.
 - **Headings you can tell apart at a glance.** Each level has its own shape, not just its own size.
 - **Documented contrast.** Every text colour pair has its WCAG 2.x ratio next to it in `theme.css`, and `tools/check_contrast.py` checks them all, for the default accent and across 580 custom accents. Body text is 4.5:1 or better in both modes, and code syntax colours are 4.5:1 or better on their code background. Syntax also uses shape (bold keywords, italic comments), not colour alone.

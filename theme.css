@@ -314,6 +314,8 @@ body.is-mobile.theme-light {
    plus the card or lane Kanban draws outside the view while dragging.
    The three note-area blocks list the same selectors, without :is(),
    so each keeps its own specificity; tools/check_contrast.py checks it.
+   The one exception is .print (PDF export), which the light and
+   both-modes blocks list and this block leaves out.
    ============================================================ */
 
 .theme-dark .markdown-source-view,
@@ -356,6 +358,11 @@ body.is-mobile.theme-light {
 
 /* ============================================================
    NOTE AREA, LIGHT
+   .print, the PDF export container, is the one selector here without
+   a mode prefix, and it is absent from the dark block: the destination
+   is white paper, so an export always takes the light note palette.
+   Obsidian already swaps <body> to .theme-light while it exports;
+   the bare selector also holds for an exporter that keeps .theme-dark.
    ============================================================ */
 
 .theme-light .markdown-source-view,
@@ -366,7 +373,8 @@ body.is-mobile.theme-light {
 .theme-light .workspace-leaf-content[data-type="kanban"] > .view-content,
 .theme-light .kanban-plugin__drag-container,
 .theme-light .drag-reorder-ghost:has(> .bases-kanban-card),
-.theme-light .drag-reorder-ghost:has(> .bases-kanban-column) {
+.theme-light .drag-reorder-ghost:has(> .bases-kanban-column),
+.print {
 	color-scheme: light;
 	background-color: var(--background-primary);
 	color: var(--text-normal);
@@ -498,7 +506,8 @@ body.is-mobile.theme-light {
 .workspace-leaf-content[data-type="kanban"] > .view-content,
 .kanban-plugin__drag-container,
 .drag-reorder-ghost:has(> .bases-kanban-card),
-.drag-reorder-ghost:has(> .bases-kanban-column) {
+.drag-reorder-ghost:has(> .bases-kanban-column),
+.print {
 	/* theme formulas */
 	--list-marker-color: var(--text-accent);
 	--checklist-done-color: var(--text-faint);
@@ -599,6 +608,7 @@ body.is-mobile.theme-light {
 	--table-drag-handle-color: var(--text-faint);
 	--table-header-border-color: var(--table-border-color);
 	--table-header-color: var(--text-normal);
+	--table-text-color: var(--text-normal);  /* Obsidian's is inherit; a snippet or plugin that sets it on <body> would get the dark UI's white */
 	--table-selection-blend-mode: var(--highlight-mix-blend-mode);
 	--tag-color: var(--text-accent);
 	--tag-color-hover: var(--text-accent);
@@ -811,7 +821,8 @@ body.is-mobile.theme-light {
 }
 
 .theme-light .markdown-rendered :is(.token.function, .token.builtin, .token.class-name),
-.theme-light .markdown-source-view.mod-cm6 :is(.cm-builtin, .cm-type) {
+.theme-light .markdown-source-view.mod-cm6 :is(.cm-builtin, .cm-type),
+.print .markdown-rendered :is(.token.function, .token.builtin, .token.class-name) {
 	font-weight: 600;
 }
 
@@ -886,7 +897,7 @@ body.is-mobile.theme-light {
 }
 
 .canvas-node-group:is(.mod-canvas-color-1, .mod-canvas-color-2, .mod-canvas-color-3, .mod-canvas-color-4, .mod-canvas-color-5) > .canvas-group-label,
-.theme-dark .canvas-node-group.mod-canvas-color-6 > .canvas-group-label {
+.theme-dark .canvas-node-group.mod-canvas-color-6:not(.print *) > .canvas-group-label {
 	--text-on-accent: var(--text-on-accent-inverted);
 }
 
@@ -896,7 +907,8 @@ body.is-mobile.theme-light {
 }
 
 /* Bases error badge: dark text on the light red is 3.4:1; white is 5.4:1 */
-.theme-light .bases-toolbar .mod-error {
+.theme-light .bases-toolbar .mod-error,
+.print .bases-toolbar .mod-error {
 	--flair-color: var(--kepler-light);
 }
 
@@ -1141,6 +1153,56 @@ body .excalidraw.theme--dark {
 
 #calendar-container .year {
 	color: var(--text-normal);
+}
+
+/* ============================================================
+   PDF EXPORT
+   Obsidian exports from a hidden window: body.theme-light > .print >
+   .markdown-preview-view.markdown-rendered, which exists only while
+   it prints. Colours come from the light note-area block; these rules
+   adapt the page to paper.
+   ============================================================ */
+
+/* Obsidian's export margins frame the page, so the note adds no padding or measure of its own */
+.print {
+	--file-margins: 0;
+	--file-line-width: 100%;
+}
+
+/* Obsidian prints the view and highlights with color: initial (black); keep the light palette's text colours */
+.print .markdown-preview-view {
+	color: var(--text-normal);
+}
+
+.print .markdown-preview-view mark {
+	color: var(--kepler-highlight-fg);
+}
+
+.print .markdown-preview-view :is(strong mark, mark strong) {
+	color: var(--kepler-highlight-strong-fg);
+}
+
+/* Elements drawn on a background keep it. Obsidian already prints the whole view with exact colours;
+   this holds them for an exporter that doesn't. */
+.print :is(h1, h4, pre, code, mark, blockquote, .callout, tr, .tag, .task-list-item-checkbox, span[style*="background"]) {
+	-webkit-print-color-adjust: exact;
+	print-color-adjust: exact;
+}
+
+/* interactive leftovers: fold arrows, header marks, embed links, copy and edit buttons */
+.print :is(.collapse-indicator, .callout-fold, .cm-formatting-header, .markdown-embed-link, .file-embed-link, .copy-code-button, .edit-block-button) {
+	display: none;
+}
+
+/* page breaks: blocks stay whole, and a heading stays with what follows it. Obsidian wraps each block
+   in a <div>, so the heading's wrapper carries the avoid too. */
+.print :is(pre, .callout, blockquote, tr, img, .internal-embed, .math-block) {
+	break-inside: avoid;
+}
+
+.print :is(h1, h2, h3, h4, h5, h6),
+.print .markdown-preview-view > div:has(> :is(h1, h2, h3, h4, h5, h6)) {
+	break-after: avoid;
 }
 
 /* ============================================================
