@@ -1,6 +1,7 @@
 /*
- * Kepler 1.0.0
- * An always-dark interface with a light/dark note area and reading-first typography.
+ * Kepler 2.0.0
+ * A light note area in both modes, with a dark interface in dark mode and an
+ * accent-tinted light interface in light mode, and reading-first typography.
  * Author:  Mateu Bennasar
  * License: MIT
  * Visual inspiration: Abecedarium by zalenza
@@ -14,13 +15,14 @@
 
 :root {
 	/* neutral palette */
-	--kepler-dark: #131313;
-	--kepler-dark-soft: #1E1E1E;
-	--kepler-dark-muted: #2C2C2C;
+	--kepler-dark: #131313;       /* ink: dark text and text on the accent */
+	--kepler-dark-bg: #1F1F1F;    /* dark-mode interface background, 4.7 points lighter than the ink */
+	--kepler-dark-soft: #2A2A2A;
+	--kepler-dark-muted: #383838;
 	--kepler-light: #FFFFFF;
 	--kepler-light-soft: #F4F4F4;
 	--kepler-gray: #A8A8A8;
-	--kepler-txt-muted: #888888;
+	--kepler-txt-muted: #939393;
 
 	/* Accent roles, default teal. These are the fallback for WebViews without relative
 	   colour syntax (iOS < 18, Android WebView < 119), which would otherwise drop every
@@ -30,19 +32,21 @@
 	--kepler-primary: #13968A;
 	--kepler-primary-dark: #155B55;
 	--kepler-primary-light: #2BD1C3;
+	--kepler-primary-mid: #007369;  /* icons on the light interface */
 	--kepler-primary-glow: rgba(43, 209, 195, 0.15);
 	--kepler-primary-tint: rgba(19, 150, 138, 0.1);
 	--kepler-selection-dark: rgba(21, 91, 85, 0.5);
 	--kepler-selection-light: rgba(43, 209, 195, 0.3);
 	--kepler-thumb-dark: rgba(43, 209, 195, 0.8);
 	--kepler-thumb-light: rgba(19, 150, 138, 0.8);
-	--kepler-h4-line-dark: rgba(43, 209, 195, 0.4);
 	--kepler-h4-line-light: rgba(19, 150, 138, 0.45);
-	--kepler-callout-dark: #36F0D2;
 	--kepler-callout-light: #006E63;
 	--kepler-keyword-light: #00796D;
-	--kepler-code-bg-dark: #161D1C;
 	--kepler-code-bg-light: #F1F6F5;
+	/* light-mode interface: light greys, a step darker than the white note, with a faint tint of the accent hue */
+	--kepler-chrome-light: #E2E7E6;
+	--kepler-chrome-light-soft: #D8DEDD;
+	--kepler-chrome-light-muted: #CAD1D0;
 	--kepler-weekend-tint: rgba(19, 150, 138, 0.09);  /* Calendar weekends: below the explorer's selected (15%) and active (30%) tints */
 	--kepler-tree-folder-tint: rgba(19, 150, 138, 0.08);  /* file explorer: the folder that holds the active file */
 
@@ -62,27 +66,28 @@
    Each role keeps a fixed OKLCH lightness, which is what holds its documented contrast,
    and takes its hue from the accent. Its chroma is the accent's (capped at 0.13, so
    vivid picks clip less) times the role's ratio to the default teal.
-   Code backgrounds keep today's absolute tint, which never exceeds the accent's own
-   chroma, so a grey accent gives grey code blocks. */
+   Code backgrounds and the light interface keep a small absolute tint, which never
+   exceeds the accent's own chroma, so a grey accent gives grey surfaces. */
 @supports (color: oklch(from red l c h)) {
 	body {
 		--kepler-accent: hsl(var(--accent-h), var(--accent-s), var(--accent-l));
 		--kepler-primary: oklch(from var(--kepler-accent) 0.612 calc(min(c, 0.13) * 0.996) h);
 		--kepler-primary-dark: oklch(from var(--kepler-accent) 0.4279 calc(min(c, 0.13) * 0.6461) h);
 		--kepler-primary-light: oklch(from var(--kepler-accent) 0.7781 calc(min(c, 0.13) * 1.239) h);
+		--kepler-primary-mid: oklch(from var(--kepler-accent) 0.5 calc(min(c, 0.13) * 0.85) h);
 		--kepler-primary-glow: oklch(from var(--kepler-primary-light) l c h / 0.15);
 		--kepler-primary-tint: oklch(from var(--kepler-primary) l c h / 0.1);
 		--kepler-selection-dark: oklch(from var(--kepler-primary-dark) l c h / 0.5);
 		--kepler-selection-light: oklch(from var(--kepler-primary-light) l c h / 0.3);
 		--kepler-thumb-dark: oklch(from var(--kepler-primary-light) l c h / 0.8);
 		--kepler-thumb-light: oklch(from var(--kepler-primary) l c h / 0.8);
-		--kepler-h4-line-dark: oklch(from var(--kepler-primary-light) l c h / 0.4);
 		--kepler-h4-line-light: oklch(from var(--kepler-primary) l c h / 0.45);
-		--kepler-callout-dark: oklch(from var(--kepler-accent) 0.8597 calc(min(c, 0.13) * 1.4194) h);
 		--kepler-callout-light: oklch(from var(--kepler-accent) 0.48 calc(min(c, 0.13) * 0.8678) h);
 		--kepler-keyword-light: oklch(from var(--kepler-accent) 0.5172 calc(min(c, 0.13) * 0.8847) h);
-		--kepler-code-bg-dark: oklch(from var(--kepler-accent) 0.2233 min(c, 0.0105) h);
 		--kepler-code-bg-light: oklch(from var(--kepler-accent) 0.9691 min(c, 0.0055) h);
+		--kepler-chrome-light: oklch(from var(--kepler-accent) 0.925 min(c, 0.006) h);
+		--kepler-chrome-light-soft: oklch(from var(--kepler-accent) 0.895 min(c, 0.007) h);
+		--kepler-chrome-light-muted: oklch(from var(--kepler-accent) 0.855 min(c, 0.008) h);
 		--kepler-weekend-tint: oklch(from var(--kepler-primary) l c h / 0.09);
 		--kepler-tree-folder-tint: oklch(from var(--kepler-primary) l c h / 0.08);
 	}
@@ -90,8 +95,9 @@
 
 /* ============================================================
    UI LAYER
-   Mode-independent settings, then the colours of the app chrome,
-   which stays dark in both modes.
+   Mode-independent settings, then the colours of the app chrome:
+   dark in dark mode, accent-tinted light in light mode. The note
+   area is light in both modes (NOTE AREA below).
    ============================================================ */
 
 body {
@@ -158,8 +164,8 @@ body {
 	--kepler-tree-icons: block;
 	--kepler-tree-icon-size: 14px;
 	--kepler-tree-icon-gap: 6px;
-	--kepler-tree-icon-color: var(--kepler-primary);      /* the UI icon accent: 5.2:1 on the sidebar, 4.8:1 on the folder block, ≥ 4.2 with any accent */
-	--kepler-tree-icon-color-active: var(--text-accent);  /* the folder that holds the active file: the light accent, 1.9× brighter */
+	--kepler-tree-icon-color: var(--kepler-primary);      /* the UI icon accent, ≥ 3:1 on the sidebar and the folder block in both modes */
+	--kepler-tree-icon-color-active: var(--text-accent);  /* the folder that holds the active file: the text accent, brighter in dark mode, darker in light */
 	--kepler-icon-folder: url("data:image/svg+xml,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 viewBox=%270 0 24 24%27 fill=%27none%27 stroke=%27black%27 stroke-width=%272%27 stroke-linecap=%27round%27 stroke-linejoin=%27round%27%3E%3Cpath d=%27M20 20a2 2 0 0 0 2-2V8a2 2 0 0 0-2-2h-7.9a2 2 0 0 1-1.69-.9L9.6 3.9A2 2 0 0 0 7.93 3H4a2 2 0 0 0-2 2v13a2 2 0 0 0 2 2Z%27/%3E%3C/svg%3E");
 	--kepler-icon-folder-open: url("data:image/svg+xml,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 viewBox=%270 0 24 24%27 fill=%27none%27 stroke=%27black%27 stroke-width=%272%27 stroke-linecap=%27round%27 stroke-linejoin=%27round%27%3E%3Cpath d=%27m6 14 1.5-2.9A2 2 0 0 1 9.24 10H20a2 2 0 0 1 1.94 2.5l-1.54 6a2 2 0 0 1-1.95 1.5H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h3.9a2 2 0 0 1 1.69.9l.81 1.2a2 2 0 0 0 1.67.9H18a2 2 0 0 1 2 2v2%27/%3E%3C/svg%3E");
 	--kepler-icon-file: url("data:image/svg+xml,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 viewBox=%270 0 24 24%27 fill=%27none%27 stroke=%27black%27 stroke-width=%272%27 stroke-linecap=%27round%27 stroke-linejoin=%27round%27%3E%3Cpath d=%27M6 22a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h8a2.4 2.4 0 0 1 1.704.706l3.588 3.588A2.4 2.4 0 0 1 20 8v12a2 2 0 0 1-2 2z%27/%3E%3Cpath d=%27M14 2v5a1 1 0 0 0 1 1h5%27/%3E%3C/svg%3E");
@@ -183,19 +189,52 @@ body.mod-rtl:not(.is-mobile) {
 	--kepler-nav-active-bar: inset -2px 0 0 var(--kepler-primary);
 }
 
-/* Mobile selectors are listed so they outrank Obsidian's .is-mobile.theme-dark. */
+/* Both interface modes. Mobile selectors are listed so they outrank Obsidian's .is-mobile.theme-dark. */
 body.theme-dark,
 body.theme-light,
 body.is-mobile.theme-dark,
 body.is-mobile.theme-light {
+	--color-accent-hsl: var(--accent-h), var(--accent-s), var(--accent-l);
+	--canvas-color: #7e7e7e;
+	--blur-background: color-mix(in srgb, var(--interactive-normal) var(--blur-opacity-s), transparent) linear-gradient(var(--interactive-normal), color-mix(in srgb, var(--interactive-normal) var(--blur-opacity-s), transparent));
+	--raised-mask-background: transparent;
+	--pdf-shadow: 0 0 0 1px var(--background-modifier-border);
+	--pdf-thumbnail-shadow: 0 0 0 1px var(--background-modifier-border);
+
+	--interactive-accent: var(--kepler-primary);
+	--icon-color: var(--kepler-primary);
+	--text-on-accent: var(--kepler-dark);          /* dark text on the accent, 5.2:1, ≥ 4.5 with any accent */
+
+	/* headings shared by both modes; the rest are in the note-area palette */
+	--kepler-h1-background: var(--kepler-primary);
+	--kepler-h1-color: var(--kepler-light);          /* 3.6:1, ≥ 3.4 with any accent; large text only */
+	--kepler-h2-color: var(--text-normal);
+	--kepler-h3-bar: var(--kepler-primary);
+
+	/* flat chrome; declared here to outrank Obsidian's platform overrides (.mod-macos, .is-mobile) */
+	--tab-radius: var(--kepler-radius-ui);
+	--tab-radius-active: var(--kepler-radius-ui);
+	--nav-item-radius: var(--kepler-radius-ui);
+	--menu-radius: var(--kepler-radius-ui);
+	--scrollbar-radius: var(--kepler-radius-ui);
+	--status-bar-radius: var(--kepler-radius-ui);
+	--vault-profile-radius: var(--kepler-radius-ui);
+}
+
+/* ============================================================
+   INTERFACE, DARK
+   ============================================================ */
+
+body.theme-dark,
+body.is-mobile.theme-dark {
 	color-scheme: dark;
 	--highlight-mix-blend-mode: lighten;
 	--mono-0: black;
 	--mono-100: white;
 	--mono-rgb-100: 255, 255, 255;
 
-	--color-base-00: var(--kepler-dark);
-	--color-base-05: var(--kepler-dark);
+	--color-base-00: var(--kepler-dark-bg);
+	--color-base-05: var(--kepler-dark-bg);
 	--color-base-10: var(--kepler-dark-soft);
 	--color-base-20: var(--kepler-dark-soft);
 	--color-base-25: var(--kepler-dark-muted);
@@ -206,7 +245,6 @@ body.is-mobile.theme-light {
 	--color-base-60: var(--kepler-gray);
 	--color-base-70: var(--kepler-gray);
 	--color-base-100: var(--kepler-light);
-	--color-accent-hsl: var(--accent-h), var(--accent-s), var(--accent-l);
 	--color-accent-1: hsl(calc(var(--accent-h) - 3), calc(var(--accent-s) * 1.02), calc(var(--accent-l) * 1.15));
 	--color-accent-2: hsl(calc(var(--accent-h) - 5), calc(var(--accent-s) * 1.05), calc(var(--accent-l) * 1.29));
 
@@ -226,22 +264,16 @@ body.is-mobile.theme-light {
 	--color-blue-rgb: 2, 122, 255;
 	--color-purple-rgb: 168, 130, 255;
 	--color-pink-rgb: 250, 153, 205;
-	--canvas-color: #7e7e7e;
-
-	--blur-background: color-mix(in srgb, var(--interactive-normal) var(--blur-opacity-s), transparent) linear-gradient(var(--interactive-normal), color-mix(in srgb, var(--interactive-normal) var(--blur-opacity-s), transparent));
-	--raised-mask-background: transparent;
 	--input-shadow: inset 0 0.5px 0.5px 0.5px rgba(255, 255, 255, 0.09), 0 2px 4px 0 rgba(0, 0, 0, 0.15), 0 1px 1.5px 0 rgba(0, 0, 0, 0.1), 0 1px 2px 0 rgba(0, 0, 0, 0.2), 0 0 0 0 transparent;
 	--input-shadow-hover: inset 0 0.5px 1px 0.5px rgba(255, 255, 255, 0.16), 0 2px 3px 0 rgba(0, 0, 0, 0.3), 0 1px 1.5px 0 rgba(0, 0, 0, 0.2), 0 1px 2px 0 rgba(0, 0, 0, 0.4), 0 0 0 0 transparent;
 	--shadow-xs: 0 1px 6px rgba(0, 0, 0, 0.045), 0 4px 24px rgba(0, 0, 0, 0.195), var(--shadow-edges);
 	--shadow-s: 0px 1px 2px rgba(0, 0, 0, 0.121), 0px 3.4px 6.7px rgba(0, 0, 0, 0.179), 0px 15px 30px rgba(0, 0, 0, 0.3);
 	--shadow-l: 0px 1.8px 7.3px rgba(0, 0, 0, 0.071), 0px 6.3px 24.7px rgba(0, 0, 0, 0.112), 0px 30px 90px rgba(0, 0, 0, 0.2);
-	--pdf-shadow: 0 0 0 1px var(--background-modifier-border);
-	--pdf-thumbnail-shadow: 0 0 0 1px var(--background-modifier-border);
 
-	--background-primary: var(--kepler-dark);
+	--background-primary: var(--kepler-dark-bg);
 	--background-primary-alt: var(--kepler-dark-soft);
-	--background-secondary: var(--kepler-dark);
-	--background-secondary-alt: var(--kepler-dark);
+	--background-secondary: var(--kepler-dark-bg);
+	--background-secondary-alt: var(--kepler-dark-bg);
 	--background-modifier-border: var(--kepler-dark-muted);
 	--background-modifier-form-field: var(--kepler-dark-soft);
 	--background-modifier-hover: var(--kepler-primary-glow);
@@ -250,24 +282,20 @@ body.is-mobile.theme-light {
 	--background-modifier-success: #197300;
 
 	--text-normal: var(--kepler-light);
-	--text-muted: var(--kepler-gray);              /* 7.8:1 on #131313 */
-	--text-faint: var(--kepler-txt-muted);         /* 5.2:1 on #131313 */
-	--text-accent: var(--kepler-primary-light);    /* 9.7:1 on #131313, ≥ 8.0 with any accent */
+	--text-muted: var(--kepler-gray);              /* 7.0:1 on #1F1F1F */
+	--text-faint: var(--kepler-txt-muted);         /* 5.3:1 on #1F1F1F */
+	--text-accent: var(--kepler-primary-light);    /* 8.6:1 on #1F1F1F, ≥ 7.1 with any accent */
 	--text-accent-hover: var(--kepler-primary);
 	--text-error: #ff3333;
-	--text-on-accent: var(--kepler-dark);          /* dark text on the accent, 5.2:1, ≥ 4.5 with any accent */
 	--text-selection: var(--kepler-selection-dark);
 	--text-highlight-bg: var(--kepler-primary-dark);
 	--kepler-highlight-fg: var(--kepler-light);           /* 7.9:1, ≥ 7.7 with any accent */
 	--kepler-highlight-strong-bg: var(--kepler-primary);
 	--kepler-highlight-strong-fg: var(--kepler-dark);     /* 5.2:1, ≥ 4.5 */
-	--kepler-text-colored: var(--kepler-primary-light);   /* 9.7:1, ≥ 8.0 */
 
 	--interactive-normal: var(--kepler-dark-soft);
 	--interactive-hover: var(--kepler-dark-muted);
-	--interactive-accent: var(--kepler-primary);
 	--interactive-accent-hover: var(--kepler-primary-light);
-	--icon-color: var(--kepler-primary);
 	--icon-color-hover: var(--kepler-primary-light);
 	--icon-color-active: var(--kepler-primary-light);
 	--icon-color-focused: var(--kepler-primary-light);
@@ -276,48 +304,27 @@ body.is-mobile.theme-light {
 	--scrollbar-active-thumb-bg: var(--kepler-thumb-dark);
 	--blockquote-background-color: var(--background-secondary);
 
-	/* headings, dark */
-	--kepler-h1-background: var(--kepler-primary);
-	--kepler-h1-color: var(--kepler-light);          /* 3.6:1, ≥ 3.4 with any accent; large text only */
-	--kepler-h2-color: var(--text-normal);
-	--kepler-h2-line: var(--kepler-primary-light);
-	--kepler-h3-color: var(--kepler-gray);           /* 7.8:1 */
-	--kepler-h3-bar: var(--kepler-primary);
-	--kepler-h4-color: var(--kepler-primary-light);  /* 9.7:1, ≥ 8.0 */
-	--kepler-h4-line: var(--kepler-h4-line-dark);
-	--kepler-h5-color: var(--kepler-gray);           /* 7.8:1 */
-	--kepler-h6-color: var(--kepler-txt-muted);      /* 5.2:1 */
-	--kepler-h6-line: var(--kepler-dark-muted);
-
-	/* callouts: cyan and green types use the accent; blue types keep --color-blue */
-	--kepler-callout-accent: var(--kepler-callout-dark);  /* brighter than the light accent, 10.6:1 on its callout background, ≥ 7.7 */
-	--callout-summary: var(--kepler-callout-accent);
-	--callout-tip: var(--kepler-callout-accent);
-	--callout-important: var(--kepler-callout-accent);
-	--callout-success: var(--kepler-callout-accent);
-
-	/* flat chrome; declared here to outrank Obsidian's platform overrides (.mod-macos, .is-mobile) */
-	--tab-radius: var(--kepler-radius-ui);
-	--tab-radius-active: var(--kepler-radius-ui);
-	--nav-item-radius: var(--kepler-radius-ui);
-	--menu-radius: var(--kepler-radius-ui);
-	--scrollbar-radius: var(--kepler-radius-ui);
-	--status-bar-radius: var(--kepler-radius-ui);
-	--vault-profile-radius: var(--kepler-radius-ui);
+	/* strong selection: quick switcher, tag count on hover; white text 7.9:1, ≥ 7.7 */
+	--kepler-selected-strong-bg: var(--kepler-primary-dark);
+	--kepler-adjacent-day-opacity: 0.5;  /* Calendar other-month days */
 }
 
 /* ============================================================
-   NOTE AREA, DARK
-   The note area is the only part that follows light/dark mode:
-   editor, reading view, hover previews, and the content of canvas,
-   Bases and Kanban views (not their view header, which is chrome),
-   plus the card or lane Kanban draws outside the view while dragging.
-   The three note-area blocks list the same selectors, without :is(),
-   so each keeps its own specificity; tools/check_contrast.py checks it.
-   The one exception is .print (PDF export), which the light and
-   both-modes blocks list and this block leaves out.
+   LIGHT PALETTE: NOTE AREA (BOTH MODES) AND LIGHT INTERFACE
+   The note area is everything you read and study: editor, reading
+   view, hover previews, and the content of canvas, Bases and Kanban
+   views (not their view header, which is chrome), plus the card or
+   lane Kanban draws outside the view while dragging. It takes this
+   light palette in both modes, so each note-area selector is listed
+   with both mode prefixes; plain lists, without :is(), keep each
+   selector's specificity. tools/check_contrast.py checks the list.
+   .print, the PDF export container, is listed bare: paper is white.
+   The light interface (body.theme-light) starts from the same palette;
+   INTERFACE, LIGHT below then tints its surfaces with the accent.
    ============================================================ */
 
+body.theme-light,
+body.is-mobile.theme-light,
 .theme-dark .markdown-source-view,
 .theme-dark .markdown-reading-view,
 .theme-dark .popover.hover-popover,
@@ -326,45 +333,7 @@ body.is-mobile.theme-light {
 .theme-dark .workspace-leaf-content[data-type="kanban"] > .view-content,
 .theme-dark .kanban-plugin__drag-container,
 .theme-dark .drag-reorder-ghost:has(> .bases-kanban-card),
-.theme-dark .drag-reorder-ghost:has(> .bases-kanban-column) {
-	--background-secondary: var(--kepler-dark-soft);  /* code blocks, blockquotes, table rows */
-	--canvas-dot-pattern: #454545;  /* neutral grid, 1.9:1 on the canvas (decorative); the 1.4px dots render near 1.7 at 1x */
-	/* boards (Bases kanban, Kanban plugin): raised cards are lighter than the columns; columns band A/B.
-	   Decorative steps: card vs column ≥ 1.16, column A vs B 1.04 */
-	--kepler-board-column-a: #1A1A1A;
-	--kepler-board-column-b: #1E1E1E;
-	--kepler-board-card: #2A2A2A;  /* body text 11.3:1, muted 6.0:1 */
-	--kepler-board-card-faint: #939393;  /* #888 is 4.0:1 on the raised card; this is 4.7:1 */
-	--kepler-board-card-border: #383838;  /* the default border (#2C2C2C) vanishes on the card */
-	--kepler-board-card-border-hover: #4D4D4D;
-	--text-normal: #E4E4E4;  /* off-white avoids halation on near-black; 14.6:1 on #131313 */
-	--bold-color: var(--kepler-light);  /* key terms stand out from body text */
-	--blockquote-background-color: var(--background-secondary);
-
-	/* code syntax palette: accent = structure, fixed warm and cool hues = content */
-	--code-background: var(--kepler-code-bg-dark);  /* grey with an accent tint below ΔE 0.011; ratios below shift by ≤ 0.04 */
-	--code-normal: #D8DEDD;       /* 12.6:1 on code background */
-	--code-comment: #7E8F8C;      /* 5.0:1 */
-	--code-keyword: var(--kepler-primary-light);  /* 9.0:1, ≥ 7.4 with any accent */
-	--code-tag: var(--kepler-primary-light);
-	--code-function: #E6C07B;     /* 9.9:1 */
-	--code-string: #F29B7E;       /* 8.0:1 */
-	--code-value: #C9A2F0;        /* 8.1:1 */
-	--code-property: #82C4E6;     /* 9.0:1 */
-	--code-operator: #A8B5B3;     /* 8.1:1 */
-	--code-punctuation: #8A9997;  /* 5.8:1 */
-	--code-important: #FF6B6B;    /* 6.2:1 */
-}
-
-/* ============================================================
-   NOTE AREA, LIGHT
-   .print, the PDF export container, is the one selector here without
-   a mode prefix, and it is absent from the dark block: the destination
-   is white paper, so an export always takes the light note palette.
-   Obsidian already swaps <body> to .theme-light while it exports;
-   the bare selector also holds for an exporter that keeps .theme-dark.
-   ============================================================ */
-
+.theme-dark .drag-reorder-ghost:has(> .bases-kanban-column),
 .theme-light .markdown-source-view,
 .theme-light .markdown-reading-view,
 .theme-light .popover.hover-popover,
@@ -491,8 +460,56 @@ body.is-mobile.theme-light {
 }
 
 /* ============================================================
+   INTERFACE, LIGHT
+   The light palette above, with the surfaces swapped for light greys a
+   step darker than the white note, faintly tinted with the accent hue.
+   It applies to <body> only, after the palette, so it wins there.
+   ============================================================ */
+
+body.theme-light,
+body.is-mobile.theme-light {
+	--color-base-00: var(--kepler-chrome-light);
+	--color-base-05: var(--kepler-chrome-light);
+	--color-base-10: var(--kepler-chrome-light);
+	--color-base-20: var(--kepler-chrome-light-soft);
+	--color-base-25: var(--kepler-chrome-light-muted);  /* hovered rows: a full step off the folder block */
+	--color-base-30: var(--kepler-chrome-light-muted);
+	--color-base-35: var(--kepler-chrome-light-muted);
+
+	--background-primary: var(--kepler-chrome-light);
+	--background-primary-alt: var(--kepler-chrome-light-soft);
+	--background-secondary: var(--kepler-chrome-light);
+	--background-secondary-alt: var(--kepler-chrome-light);
+	--background-modifier-border: var(--kepler-chrome-light-muted);
+	--background-modifier-form-field: var(--kepler-light);  /* inputs stay white, like the page they edit */
+
+	--text-muted: #404040;  /* 8.3:1 on the interface, 6.7 on a hovered row */
+	--text-faint: #555555;  /* 6.0:1, 4.8 on a hovered row */
+
+	/* icons: darker than the base accent, so they hold 3:1 on the grey surfaces and the folder block */
+	--icon-color: var(--kepler-primary-mid);
+	--kepler-tree-icon-color: var(--kepler-primary-mid);
+
+	/* the active tree row keeps dark text: the accent text drops below 4.5:1 on its tint over grey.
+	   The tint and the accent bar still mark it. */
+	--nav-item-color-active: var(--text-normal);
+
+	/* graph view labels: the base accent is faint on grey; the dark accent reads 6.3:1, ≥ 6.1 with any accent */
+	--graph-text: var(--kepler-primary-dark);
+
+	--interactive-normal: var(--kepler-light);
+	--interactive-hover: var(--kepler-chrome-light-soft);
+	--interactive-accent-hover: var(--kepler-primary-light);  /* buttons keep their dark text on hover: 9.7:1, ≥ 8.0 */
+	--scrollbar-thumb-bg: var(--kepler-chrome-light-muted);
+
+	/* strong selection: quick switcher, tag count on hover; dark text on an accent tint */
+	--kepler-selected-strong-bg: color-mix(in srgb, var(--kepler-primary) 25%, var(--kepler-chrome-light));
+	--kepler-adjacent-day-opacity: 0.65;  /* Calendar other-month days: dark text needs more than 50% */
+}
+
+/* ============================================================
    NOTE AREA, BOTH MODES
-   Obsidian resolves derived variables on <body>, against the dark UI values.
+   Obsidian resolves derived variables on <body>, against the interface values.
    Redeclaring them here makes them resolve against the note-area values.
    Only variables that something inside a note reads, and whose inputs
    change between UI and note, are listed.
@@ -608,7 +625,7 @@ body.is-mobile.theme-light {
 	--table-drag-handle-color: var(--text-faint);
 	--table-header-border-color: var(--table-border-color);
 	--table-header-color: var(--text-normal);
-	--table-text-color: var(--text-normal);  /* Obsidian's is inherit; a snippet or plugin that sets it on <body> would get the dark UI's white */
+	--table-text-color: var(--text-normal);  /* Obsidian's is inherit; a snippet or plugin that sets it on <body> would get the dark interface's white */
 	--table-selection-blend-mode: var(--highlight-mix-blend-mode);
 	--tag-color: var(--text-accent);
 	--tag-color-hover: var(--text-accent);
@@ -656,6 +673,27 @@ body.is-mobile.theme-light {
 	--bases-kanban-card-shadow-hover: 0 0 0 1px var(--kepler-board-card-border-hover), 0 1.5px 3px 0 rgba(0, 0, 0, 0.2);
 	--bases-kanban-card-shadow-focus: 0 0 0 2px var(--background-modifier-border-focus);
 	--bases-kanban-cover-background: var(--background-secondary);
+
+	/* Mermaid (Obsidian 1.15+): Obsidian declares these on <body>, so they resolved to the interface
+	   colours (black surfaces, white lines in dark mode); here they take the light note palette */
+	--mermaid-background: var(--background-primary);
+	--mermaid-text-color: var(--text-normal);
+	--mermaid-muted-color: var(--text-muted);
+	--mermaid-line-color: var(--text-normal);
+	--mermaid-surface: var(--background-secondary);
+	--mermaid-surface-alt: var(--background-primary-alt);
+	--mermaid-border-color: var(--background-modifier-border-hover);
+	--mermaid-accent: var(--interactive-accent);
+	--mermaid-critical: var(--color-red);
+	--mermaid-error: var(--text-error);
+	--mermaid-color-1: var(--color-blue);
+	--mermaid-color-2: var(--color-orange);
+	--mermaid-color-3: var(--color-green);
+	--mermaid-color-4: var(--color-red);
+	--mermaid-color-5: var(--color-cyan);
+	--mermaid-color-6: var(--color-yellow);
+	--mermaid-color-7: var(--color-purple);
+	--mermaid-color-8: var(--color-pink);
 
 	/* Code Styler sets its colours on <body> from JavaScript, so they follow the UI unless mapped here */
 	--code-styler-codeblock-background-colour: var(--code-background);
@@ -820,9 +858,8 @@ body.is-mobile.theme-light {
 	font-style: italic;
 }
 
-.theme-light .markdown-rendered :is(.token.function, .token.builtin, .token.class-name),
-.theme-light .markdown-source-view.mod-cm6 :is(.cm-builtin, .cm-type),
-.print .markdown-rendered :is(.token.function, .token.builtin, .token.class-name) {
+.markdown-rendered :is(.token.function, .token.builtin, .token.class-name),
+.markdown-source-view.mod-cm6 :is(.cm-builtin, .cm-type) {
 	font-weight: 600;
 }
 
@@ -848,6 +885,18 @@ body.is-mobile.theme-light {
 .markdown-source-view.mod-cm6 .cm-inline-code {
 	padding: 0.1em 0.3em;
 	border-radius: 3px;
+}
+
+/* ============================================================
+   DIAGRAMS
+   ============================================================ */
+
+/* Mermaid on Obsidian 1.14: the diagram is drawn in Mermaid's light theme and, in dark mode, inverted
+   (.theme-dark .mermaid > svg { filter: invert(100%) … }). The note area is light in both modes,
+   so the inversion is turned off. Obsidian 1.15 draws diagrams from the --mermaid-* variables
+   instead, which the note-area block redeclares. */
+.theme-dark .mermaid > svg {
+	filter: none;
 }
 
 /* ============================================================
@@ -891,24 +940,22 @@ body.is-mobile.theme-light {
 
 /* Group labels on a colour: Obsidian picks dark or light text by YIQ and reads --text-on-accent
    for light text, expecting white. Kepler's is dark, so custom colours get white back, and the
-   presets take black, which reads better on them: ≥ 4.5:1 in both modes; light purple keeps white, 4.9:1. */
+   presets take black, which reads better on them: ≥ 4.5:1; purple keeps white, 4.9:1. */
 .canvas-node-group .canvas-group-label {
 	--text-on-accent: var(--kepler-light);
 }
 
-.canvas-node-group:is(.mod-canvas-color-1, .mod-canvas-color-2, .mod-canvas-color-3, .mod-canvas-color-4, .mod-canvas-color-5) > .canvas-group-label,
-.theme-dark .canvas-node-group.mod-canvas-color-6:not(.print *) > .canvas-group-label {
+.canvas-node-group:is(.mod-canvas-color-1, .mod-canvas-color-2, .mod-canvas-color-3, .mod-canvas-color-4, .mod-canvas-color-5) > .canvas-group-label {
 	--text-on-accent: var(--text-on-accent-inverted);
 }
 
-/* Bases kanban cards are raised above their column; faint text needs its own grey there in dark mode */
+/* Bases kanban cards are raised above their column and may need their own faint grey there */
 .bases-kanban-card {
 	--text-faint: var(--kepler-board-card-faint);
 }
 
 /* Bases error badge: dark text on the light red is 3.4:1; white is 5.4:1 */
-.theme-light .bases-toolbar .mod-error,
-.print .bases-toolbar .mod-error {
+.bases-toolbar .mod-error {
 	--flair-color: var(--kepler-light);
 }
 
@@ -934,9 +981,10 @@ body.is-mobile.theme-light {
 	transition: background-color 80ms linear;
 }
 
-/* the UI stays dark in light mode, so dropdowns keep Obsidian's light-on-dark arrow */
-.theme-light .dropdown {
-	background-image: url("data:image/svg+xml,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 width=%2724%27 height=%2724%27 viewBox=%270 0 24 24%27 fill=%27none%27 stroke=%27%23FFF%27 opacity=%270.6%27 stroke-width=%272%27 stroke-linecap=%27round%27 stroke-linejoin=%27round%27 %3E%3Cpath d=%27m7 15 5 5 5-5%27/%3E%3Cpath d=%27m7 9 5-5 5 5%27/%3E%3C/svg%3E"), radial-gradient(ellipse, var(--dropdown-icon-background) 48%, transparent 50%);
+/* Dark mode: a dropdown inside the light note area takes Obsidian's dark-on-light arrow back
+   (Obsidian swaps it for a white one on .theme-dark) */
+.theme-dark :is(.markdown-source-view, .markdown-reading-view, .popover.hover-popover, .workspace-leaf-content[data-type="canvas"] > .view-content, .workspace-leaf-content[data-type="bases"] > .view-content, .workspace-leaf-content[data-type="kanban"] > .view-content) .dropdown {
+	background-image: url("data:image/svg+xml,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 width=%2724%27 height=%2724%27 viewBox=%270 0 24 24%27 fill=%27none%27 stroke=%27%23000%27 opacity=%270.9%27 stroke-width=%272%27 stroke-linecap=%27round%27 stroke-linejoin=%27round%27 %3E%3Cpath d=%27m7 15 5 5 5-5%27/%3E%3Cpath d=%27m7 9 5-5 5 5%27/%3E%3C/svg%3E"), radial-gradient(ellipse, var(--dropdown-icon-background) 48%, transparent 50%);
 }
 
 /* File explorer icons: one per row, before the name, so names at the same level line up.
@@ -1039,7 +1087,7 @@ body:not(.is-phone) .workspace-leaf.mod-active .tree-item-self.is-active.has-foc
 
 .tag-container .tree-item-self:hover .tag-pane-tag-count {
 	color: var(--text-normal);
-	background-color: var(--kepler-primary-dark);
+	background-color: var(--kepler-selected-strong-bg);
 }
 
 /* search and backlinks */
@@ -1055,7 +1103,7 @@ body:not(.is-phone) .workspace-leaf.mod-active .tree-item-self.is-active.has-foc
 
 /* quick switcher and command palette */
 .suggestion-item.is-selected {
-	background-color: var(--kepler-primary-dark);
+	background-color: var(--kepler-selected-strong-bg);
 }
 
 .suggestion-item.is-selected .suggestion-hotkey {
@@ -1106,6 +1154,9 @@ body .excalidraw.theme--dark {
 
 /* Drag previews (Kanban plugin, Bases kanban) take the light note-area variables and text colour,
    but not its background; the dragged card or column paints its own, so the rounded corners stay clean */
+.theme-dark .kanban-plugin__drag-container,
+.theme-dark .drag-reorder-ghost:has(> .bases-kanban-card),
+.theme-dark .drag-reorder-ghost:has(> .bases-kanban-column),
 .theme-light .kanban-plugin__drag-container,
 .theme-light .drag-reorder-ghost:has(> .bases-kanban-card),
 .theme-light .drag-reorder-ghost:has(> .bases-kanban-column) {
@@ -1133,9 +1184,9 @@ body .excalidraw.theme--dark {
 
 /* Kanban: add buttons hover to --interactive-accent-hover, the dark accent in a light board,
    so their text turns light there; 7.9:1, ≥ 7.7 with any accent */
-.theme-light .kanban-plugin__new-item-button:hover,
-.theme-light button.kanban-plugin__item-action-add:hover,
-.theme-light button.kanban-plugin__lane-action-add:hover {
+.kanban-plugin__new-item-button:hover,
+button.kanban-plugin__item-action-add:hover,
+button.kanban-plugin__lane-action-add:hover {
 	--text-on-accent: var(--kepler-light);
 }
 
@@ -1145,10 +1196,10 @@ body .excalidraw.theme--dark {
 	--color-text-today: var(--text-accent);
 }
 
-/* Other-month days: the plugin dims the whole cell to 25%, which leaves white day numbers at 2.3:1.
-   At 50% they read like --text-faint: 5.1:1 on a weekend, ≥ 5.0 with any accent. */
+/* Other-month days: the plugin dims the whole cell to 25%, which leaves day numbers near 2.3:1.
+   --kepler-adjacent-day-opacity (50% dark, 65% light) keeps them ≥ 4.5 on a weekend with any accent. */
 #calendar-container .day.adjacent-month {
-	opacity: 0.5;
+	opacity: var(--kepler-adjacent-day-opacity);
 }
 
 #calendar-container .year {
